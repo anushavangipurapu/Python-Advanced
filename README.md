@@ -1,0 +1,248 @@
+
+
+````markdown
+# Employee Management Backend
+
+A Django backend project for Employee Management.
+
+## Project Setup
+
+### 1. Create Virtual Environment
+
+```bash
+python -m venv venv
+````
+
+### 2. Activate Virtual Environment
+
+Windows PowerShell:
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+### 3. Install Django
+
+```bash
+python -m pip install django
+```
+
+### 4. Create Django Project
+
+```bash
+django-admin startproject employee_management .
+```
+
+### 5. Create Employees App
+
+```bash
+python manage.py startapp employees
+```
+
+### 6. Run Django Server
+
+```bash
+python manage.py runserver
+```
+
+Server URL:
+
+[http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+
+## Health Check API
+
+### Endpoint
+
+```text
+GET /api/health/
+```
+
+### URL
+
+```text
+http://127.0.0.1:8000/api/health/
+```
+
+### Response
+
+```json
+{
+    "status": "success",
+    "message": "Employee Management Backend is running"
+}
+```
+
+## Project Structure
+
+```text
+employee_management_backend/
+│
+├── employee_management/
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── asgi.py
+│   └── wsgi.py
+│
+├── employees/
+│   ├── migrations/
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── tests.py
+│   ├── urls.py
+│   └── views.py
+│
+├── manage.py
+├── requirements.txt
+├── .gitignore
+└── README.md
+```
+
+## Main Files
+
+### manage.py
+
+Used to run Django commands.
+
+Examples:
+
+```bash
+python manage.py runserver
+python manage.py check
+python manage.py startapp employees
+```
+
+### settings.py
+
+Contains Django project configuration.
+
+It includes:
+
+* INSTALLED_APPS
+* DATABASES
+* MIDDLEWARE
+* STATIC FILES
+* Other project settings
+
+### urls.py
+
+Used for URL routing.
+
+Project-level URL:
+
+```text
+/api/
+```
+
+Employee app URL:
+
+```text
+/api/health/
+```
+
+### models.py
+
+Used to define database models.
+
+Example:
+
+```python
+class Employee(models.Model):
+    name = models.CharField(max_length=100)
+```
+
+### views.py
+
+Contains request and response logic.
+
+Health check view returns JSON response.
+
+### admin.py
+
+Used to configure Django Admin.
+
+### apps.py
+
+Contains application configuration for the employees app.
+
+### employees/urls.py
+
+Contains URL routes for the employees application.
+
+## Testing
+
+### Health Check Test
+
+Open:
+
+```text
+http://127.0.0.1:8000/api/health/
+```
+
+Expected response:
+
+```json
+{
+    "status": "success",
+    "message": "Employee Management Backend is running"
+}
+```
+
+### Invalid URL Test
+
+Example:
+
+```text
+http://127.0.0.1:8000/api/invalid/
+```
+
+Expected result:
+
+```text
+404 Not Found
+```
+
+## Validation
+
+Run Django system check:
+
+```bash
+python manage.py check
+```
+
+Expected output:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+## Dependencies
+
+Django dependencies are stored in:
+
+```text
+requirements.txt
+```
+
+Install dependencies using:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+## Current Status
+
+* Django project created
+* Virtual environment created
+* Django installed
+* Employees app created
+* Employees app registered
+* Project-level URL routing configured
+* Employee app URL routing configured
+* Health check API implemented
+* Health check API tested successfully
+* Invalid URL 404 testing completed
+* requirements.txt created
+* .gitignore create
