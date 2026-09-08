@@ -246,3 +246,202 @@ python -m pip install -r requirements.txt
 * Invalid URL 404 testing completed
 * requirements.txt created
 * .gitignore create
+
+8/9/26
+
+
+
+
+```text
+employee_management_backend
+│
+├── README.md
+├── manage.py
+├── employee_management/
+└── employees/
+```
+
+
+# Y-ADV-02 — Django URLs, Views & Request/Response Flow
+
+## Objective
+
+Understand how a request travels through Django and implement employee-related views.
+
+## Features Implemented
+
+- Employee list view
+- Employee detail view
+- Application-level URL configuration
+- Dynamic employee ID URL
+- Meaningful URL names
+- JsonResponse
+- Sample employee data
+- Invalid employee ID handling
+- HTTP 404 status handling
+
+## Project Structure
+
+```text
+employee_management_backend/
+│
+├── employee_management/
+│   └── urls.py
+│
+├── employees/
+│   ├── urls.py
+│   └── views.py
+│
+├── manage.py
+└── README.md
+````
+
+## URL Endpoints
+
+### 1. Health Check
+
+```text
+GET /api/health/
+```
+
+### 2. Employee List
+
+```text
+GET /api/employees/
+```
+
+Returns all employees.
+
+Example response:
+
+```json
+{
+    "status": "success",
+    "employees": [
+        {
+            "id": 1,
+            "name": "Divya",
+            "department": "Backend",
+            "designation": "Python Developer"
+        }
+    ]
+}
+```
+
+### 3. Employee Detail
+
+```text
+GET /api/employees/<id>/
+```
+
+Example:
+
+```text
+GET /api/employees/1/
+```
+
+Response:
+
+```json
+{
+    "id": 1,
+    "name": "Divya",
+    "department": "Backend",
+    "designation": "Python Developer"
+}
+```
+
+## Invalid Employee ID
+
+If an employee ID does not exist, the API returns HTTP 404.
+
+Example:
+
+```text
+GET /api/employees/999/
+```
+
+Response:
+
+```json
+{
+    "status": "error",
+    "message": "Employee not found"
+}
+```
+
+## Request/Response Flow
+
+The Django request flow is:
+
+```text
+Client
+   ↓
+Project URL
+   ↓
+Application URL
+   ↓
+View
+   ↓
+JsonResponse
+   ↓
+Client
+```
+
+Example:
+
+```text
+GET /api/employees/1/
+        ↓
+employee_management/urls.py
+        ↓
+employees/urls.py
+        ↓
+employee_detail(request, id)
+        ↓
+JsonResponse
+        ↓
+Client
+```
+
+## Sample Employee Data
+
+The application currently uses sample employee data:
+
+| ID | Name   | Department | Designation      |
+| -- | ------ | ---------- | ---------------- |
+| 1  | Divya  | Backend    | Python Developer |
+| 2  | Anusha | Frontend   | React Developer  |
+| 3  | Rahul  | Testing    | QA Engineer      |
+
+## Testing Completed
+
+* Employee list endpoint tested
+* Valid employee ID tested
+* Invalid employee ID tested
+* Invalid URL tested
+* Empty employee list tested
+* Django system check completed successfully
+
+## Django System Check
+
+Command:
+
+```bash
+python manage.py check
+```
+
+Result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+## Git
+
+### Branch
+
+```text
+feature/employee-views
+```
+
