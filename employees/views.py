@@ -1,7 +1,26 @@
 from django.http import JsonResponse
 
 
-employees_data = []
+employees_data = [
+    {
+        "id": 1,
+        "name": "Divya",
+        "department": "Backend",
+        "designation": "Python Developer",
+    },
+    {
+        "id": 2,
+        "name": "Anusha",
+        "department": "Frontend",
+        "designation": "React Developer",
+    },
+    {
+        "id": 3,
+        "name": "Rahul",
+        "department": "Testing",
+        "designation": "QA Engineer",
+    },
+]
 
 
 def health_check(request):
@@ -21,7 +40,9 @@ def employee_list(request):
 def employee_detail(request, id):
     for employee in employees_data:
         if employee["id"] == id:
-            return JsonResponse(employee)
+            return JsonResponse({
+                "employee": employee
+            })
 
     return JsonResponse({
         "status": "error",
