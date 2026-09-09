@@ -1,26 +1,5 @@
 from django.http import JsonResponse
-
-
-employees_data = [
-    {
-        "id": 1,
-        "name": "Divya",
-        "department": "Backend",
-        "designation": "Python Developer",
-    },
-    {
-        "id": 2,
-        "name": "Anusha",
-        "department": "Frontend",
-        "designation": "React Developer",
-    },
-    {
-        "id": 3,
-        "name": "Rahul",
-        "department": "Testing",
-        "designation": "QA Engineer",
-    },
-]
+from .models import Employee
 
 
 def health_check(request):
@@ -31,20 +10,48 @@ def health_check(request):
 
 
 def employee_list(request):
+    employees = Employee.objects.all()
+
     return JsonResponse({
         "status": "success",
-        "employees": employees_data
+        "employees": [
+            {
+                "id": employee.id,
+                "employee_code": employee.employee_code,
+                "first_name": employee.first_name,
+                "last_name": employee.last_name,
+                "email": employee.email,
+                "phone": employee.phone,
+                "department": employee.department,
+                "designation": employee.designation,
+                "salary": str(employee.salary),
+                "joining_date": str(employee.joining_date),
+                "is_active": employee.is_active,
+            }
+            for employee in employees
+        ]
     })
 
 
 def employee_detail(request, id):
-    for employee in employees_data:
-        if employee["id"] == id:
-            return JsonResponse({
-                "employee": employee
-            })
+    try:
+        employee = Employee.objects.get(id=id)
+    except Employee.DoesNotExist:
+        return JsonResponse({
+            "status": "error",
+            "message": "Employee not found"
+        }, status=404)
 
     return JsonResponse({
-        "status": "error",
-        "message": "Employee not found"
-    }, status=404)
+        "id": employee.id,
+        "employee_code": employee.employee_code,
+        "first_name": employee.first_name,
+        "last_name": employee.last_name,
+        "email": employee.email,
+        "phone": employee.phone,
+        "department": employee.department,
+        "designation": employee.designation,
+        "salary": str(employee.salary),
+        "joining_date": str(employee.joining_date),
+        "is_active": employee.is_active,
+    })
