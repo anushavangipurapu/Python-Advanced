@@ -444,4 +444,46 @@ System check identified no issues (0 silenced).
 ```text
 feature/employee-views
 ```
+9/08/26
+## AY-03 — Django Models, Migrations & ORM
+**Date:** 09-Sep-2026
 
+### Completed Tasks
+
+- Created `Employee` Django model
+- Added employee fields:
+  - employee_code
+  - first_name
+  - last_name
+  - email
+  - phone
+  - department
+  - designation
+  - salary
+  - joining_date
+  - is_active
+  - created_at
+  - updated_at
+- Added unique constraints for employee code and email
+- Added default value for `is_active`
+- Implemented `__str__()`
+- Generated and applied Django migrations
+- Created 15 employee records using Django ORM
+- Retrieved all employees
+- Filtered active employees
+- Filtered inactive employees
+- Filtered IT department employees
+- Filtered employees with salary greater than 50,000
+- Ordered employees by joining date
+- Tested `get()`, `filter()`, and `exclude()`
+- Tested ORM update operation
+- Tested ORM delete operation
+- Tested `DoesNotExist` error
+- Tested and fixed incorrect ORM filter
+- Tested and fixed incorrect migration
+- Created Git branch `feature/employee-model`
+- Completed Git commit
+
+### Git Commit
+
+`a11de51` — `feat: add employee model and orm operations`
