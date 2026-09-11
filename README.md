@@ -570,3 +570,277 @@ System check identified no issues (0 silenced).
 **Commit:** `dabe409 — feat: implement employee crud and admin`
 
 Changes were successfully pushed to GitHub.
+
+11/09/26
+
+# Employee Management Backend
+
+A Django-based Employee Management Backend application developed as part of the Django Fundamentals Week 1 tasks.
+
+## Project Structure
+
+```text
+employee_management_backend/
+│
+├── employee_management/
+│   ├── settings.py
+│   ├── urls.py
+│   └── ...
+│
+├── employees/
+│   ├── admin.py
+│   ├── apps.py
+│   ├── forms.py
+│   ├── models.py
+│   ├── urls.py
+│   └── views.py
+│
+├── manage.py
+├── db.sqlite3
+├── requirements.txt
+└── README.md
+````
+
+## Technologies Used
+
+* Python
+* Django
+* SQLite
+* Django ORM
+* Django Admin
+* JSON API
+
+## Employee Model
+
+The Employee model contains the following fields:
+
+* employee_code
+* first_name
+* last_name
+* email
+* phone
+* department
+* designation
+* salary
+* joining_date
+* is_active
+* created_at
+* updated_at
+
+## API Endpoints
+
+### Health Check
+
+```text
+GET /api/health/
+```
+
+Returns the application health status.
+
+### List Employees
+
+```text
+GET /api/employees/
+```
+
+Returns all employees.
+
+### Search / Filter Employees
+
+```text
+GET /api/employees/?department=IT
+```
+
+Returns employees belonging to the specified department.
+
+### Create Employee
+
+```text
+POST /api/employees/
+```
+
+Creates a new employee.
+
+Successful creation returns:
+
+```text
+201 Created
+```
+
+### View Employee
+
+```text
+GET /api/employees/<id>/
+```
+
+Returns details of a specific employee.
+
+### Update Employee
+
+```text
+PUT /api/employees/<id>/
+```
+
+Updates an employee.
+
+### Partial Update Employee
+
+```text
+PATCH /api/employees/<id>/
+```
+
+Partially updates an employee.
+
+### Delete Employee
+
+```text
+DELETE /api/employees/<id>/
+```
+
+Deletes an employee.
+
+## HTTP Status Codes
+
+* `200 OK` - Successful request
+* `201 Created` - Employee successfully created
+* `400 Bad Request` - Invalid input or duplicate data
+* `404 Not Found` - Employee does not exist
+* `405 Method Not Allowed` - Unsupported HTTP method
+
+## Validation
+
+The application validates:
+
+* Required employee fields
+* Unique employee code
+* Unique email
+* Salary cannot be negative
+* Valid JSON request data
+
+## Django Admin
+
+Employee records can be managed through Django Admin.
+
+Admin configuration includes:
+
+* Employee list display
+* Search functionality
+* Department filtering
+* Active status filtering
+* Employee code ordering
+
+## Logging
+
+Basic application logging is implemented for:
+
+* Health check requests
+* Employee creation
+* Employee updates
+* Employee deletion
+
+## Database and Migrations
+
+Django migrations are used to create and update the Employee database table.
+
+Migration commands:
+
+```powershell
+python manage.py makemigrations
+python manage.py migrate
+```
+
+Migration status can be checked using:
+
+```powershell
+python manage.py showmigrations
+```
+
+## Application Testing
+
+The complete employee workflow was tested:
+
+```text
+Create Employee
+      ↓
+View Employee
+      ↓
+Update Employee
+      ↓
+Search Employee
+      ↓
+Filter Employee
+      ↓
+Delete Employee
+```
+
+All major CRUD operations were tested successfully.
+
+## Debugging Challenge
+
+The following controlled bugs were reproduced, identified, fixed, and tested:
+
+### Bug 1 - Broken URL
+
+An incorrect URL name caused a `NoReverseMatch` error.
+
+Root cause was identified and the correct URL name was restored.
+
+### Bug 2 - Incorrect ORM Query
+
+An incorrect model field name caused a Django `FieldError`.
+
+The query was corrected to use the actual `department` field.
+
+### Bug 3 - Incorrect Response Status
+
+The employee creation API returned `200 OK` instead of `201 Created`.
+
+The response was corrected by adding:
+
+```python
+status=201
+```
+
+### Bug 4 - Missing Migration
+
+A temporary model field was added without applying its migration.
+
+The migration was created and applied successfully, and the temporary field was later removed with a cleanup migration.
+
+## Final Verification
+
+The Django project was verified using:
+
+```powershell
+python manage.py check
+```
+
+Result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+The application server was also tested successfully.
+
+## Week 1 Deliverable
+
+Completed Django Fundamentals Week 1 deliverable including:
+
+* Django Project
+* Employees App
+* Employee Model
+* Database Migrations
+* Django ORM
+* Views
+* URLs
+* CRUD Operations
+* Django Admin
+* Form Validation
+* HTTP Status Codes
+* Error Handling
+* Basic Logging
+* API Testing
+* Debugging
+* Documentation
+
