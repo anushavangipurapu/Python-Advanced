@@ -1,5 +1,5 @@
-
 import json
+import logging
 
 from django.http import JsonResponse
 from django.shortcuts import redirect
@@ -8,7 +8,28 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Employee
 
 
+logger = logging.getLogger("employees")
+
+
+def employee_to_dict(employee):
+    return {
+        "id": employee.id,
+        "employee_code": employee.employee_code,
+        "first_name": employee.first_name,
+        "last_name": employee.last_name,
+        "email": employee.email,
+        "phone": employee.phone,
+        "department": employee.department,
+        "designation": employee.designation,
+        "salary": str(employee.salary),
+        "joining_date": str(employee.joining_date),
+        "is_active": employee.is_active,
+    }
+
+
 def health_check(request):
+    logger.info("Health check endpoint called")
+
     return JsonResponse({
         "status": "success",
         "message": "Employee Management Backend is running"
@@ -17,31 +38,24 @@ def health_check(request):
 
 @csrf_exempt
 def employee_list(request):
-    # READ - Get all employees
     if request.method == "GET":
-        employees = Employee.objects.all()
+        department = request.GET.get("department")
+
+        if department:
+            employees = Employee.objects.filter(
+                department=department
+            )
+        else:
+            employees = Employee.objects.all()
 
         return JsonResponse({
             "status": "success",
             "employees": [
-                {
-                    "id": employee.id,
-                    "employee_code": employee.employee_code,
-                    "first_name": employee.first_name,
-                    "last_name": employee.last_name,
-                    "email": employee.email,
-                    "phone": employee.phone,
-                    "department": employee.department,
-                    "designation": employee.designation,
-                    "salary": str(employee.salary),
-                    "joining_date": str(employee.joining_date),
-                    "is_active": employee.is_active,
-                }
+                employee_to_dict(employee)
                 for employee in employees
             ]
         })
 
-    # CREATE - Add new employee
     if request.method == "POST":
         try:
             data = json.loads(request.body)
@@ -100,22 +114,15 @@ def employee_list(request):
                 is_active=data.get("is_active", True),
             )
 
+            logger.info(
+                "Employee created successfully: %s",
+                employee.employee_code
+            )
+
             return JsonResponse({
                 "status": "success",
                 "message": "Employee created successfully",
-                "employee": {
-                    "id": employee.id,
-                    "employee_code": employee.employee_code,
-                    "first_name": employee.first_name,
-                    "last_name": employee.last_name,
-                    "email": employee.email,
-                    "phone": employee.phone,
-                    "department": employee.department,
-                    "designation": employee.designation,
-                    "salary": str(employee.salary),
-                    "joining_date": str(employee.joining_date),
-                    "is_active": employee.is_active,
-                }
+                "employee": employee_to_dict(employee)
             }, status=201)
 
         except json.JSONDecodeError:
@@ -130,6 +137,11 @@ def employee_list(request):
                 "message": "Invalid salary"
             }, status=400)
 
+    return JsonResponse({
+        "status": "error",
+        "message": "Method not allowed"
+    }, status=405)
+
 
 @csrf_exempt
 def employee_detail(request, id):
@@ -141,23 +153,9 @@ def employee_detail(request, id):
             "message": "Employee not found"
         }, status=404)
 
-    # READ - Get single employee
     if request.method == "GET":
-        return JsonResponse({
-            "id": employee.id,
-            "employee_code": employee.employee_code,
-            "first_name": employee.first_name,
-            "last_name": employee.last_name,
-            "email": employee.email,
-            "phone": employee.phone,
-            "department": employee.department,
-            "designation": employee.designation,
-            "salary": str(employee.salary),
-            "joining_date": str(employee.joining_date),
-            "is_active": employee.is_active,
-        })
+        return JsonResponse(employee_to_dict(employee))
 
-    # UPDATE - Update employee
     if request.method in ["PUT", "PATCH"]:
         try:
             data = json.loads(request.body)
@@ -207,6 +205,11 @@ def employee_detail(request, id):
 
             employee.save()
 
+            logger.info(
+                "Employee updated successfully: %s",
+                employee.employee_code
+            )
+
             return JsonResponse({
                 "status": "success",
                 "message": "Employee updated successfully"
@@ -218,9 +221,14 @@ def employee_detail(request, id):
                 "message": "Invalid JSON"
             }, status=400)
 
-    # DELETE - Delete employee
     if request.method == "DELETE":
+        employee_code = employee.employee_code
         employee.delete()
+
+        logger.info(
+            "Employee deleted successfully: %s",
+            employee_code
+        )
 
         return JsonResponse({
             "status": "success",
@@ -233,7 +241,5 @@ def employee_detail(request, id):
     }, status=405)
 
 
-# DEBUGGING EXERCISE - Invalid Redirect
 def invalid_redirect(request):
     return redirect("employee-list")
-

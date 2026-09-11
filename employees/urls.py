@@ -13,6 +13,6 @@ urlpatterns = [
     path("employees/", employee_list, name="employee-list"),
     path("employees/<int:id>/", employee_detail, name="employee-detail"),
 
-    # Debugging Exercise - Invalid Redirect
-    path("invalid-redirect/", invalid_redirect, name="invalid-redirect"),
+    # Debugging Exercise - Broken URL
+    path("invalid-redirect/", invalid_redirect, name="invalid-redirect-broken"),
 ]
