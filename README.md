@@ -487,3 +487,86 @@ feature/employee-views
 ### Git Commit
 
 `a11de51` — `feat: add employee model and orm operations`
+
+10/09/26
+## AY-04 — Django Admin & Employee CRUD
+
+**Date:** 10-Sep-2026
+
+### Objective
+
+Complete the Employee CRUD application and configure the Django Admin interface.
+
+### Django Admin
+
+- Created Django superuser.
+- Registered Employee model in Django Admin.
+- Configured `list_display`.
+- Configured `search_fields`.
+- Configured `list_filter`.
+- Configured `ordering`.
+- Successfully logged into Django Admin.
+- Added employees through Admin.
+- Tested employee search.
+- Tested employee filtering.
+
+### Employee CRUD
+
+Implemented:
+
+- Create Employee
+- Read Employee
+- Update Employee
+- Delete Employee
+
+### Employee Form
+
+Created `employees/forms.py` using Django `ModelForm`.
+
+Implemented validation for:
+
+- Employee code
+- Email
+- Salary
+- Required fields
+
+### Employee API Endpoints
+
+```text
+GET /api/employees/
+POST /api/employees/
+
+GET /api/employees/<id>/
+PUT /api/employees/<id>/
+PATCH /api/employees/<id>/
+DELETE /api/employees/<id>/ 
+### Testing Completed
+
+- Valid employee creation
+- Missing email
+- Duplicate employee code
+- Duplicate email
+- Invalid salary
+- Employee update
+- Employee delete
+- Invalid employee ID
+
+### Debugging Exercises
+
+- Duplicate email validation tested successfully.
+- Missing form field validation tested successfully.
+- Invalid redirect error (`NoReverseMatch`) introduced and fixed.
+- Missing CSRF token issue tested and fixed for API testing using `@csrf_exempt`.
+
+### Django System Check
+
+```text
+System check identified no issues (0 silenced).
+
+### Git
+
+**Branch:** `feature/employee-crud`
+
+**Commit:** `dabe409 — feat: implement employee crud and admin`
+
+Changes were successfully pushed to GitHub.
