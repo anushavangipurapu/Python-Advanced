@@ -1,5 +1,4 @@
 
-<<<<<<< HEAD
 
 ````markdown
 # Employee Management Backend
@@ -1159,5 +1158,4 @@ The Employee REST API includes:
 * API documentation
 
 ````
->>>>>>> origin/main
 
