@@ -5,3 +5,8 @@ db.sqlite3
 .env
 .vscode/
 .idea/
+.pytest_cache/
+*.pyc
+*.log
+instance/
+.env
