@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'employees',
+    "rest_framework",
 ]
 
 MIDDLEWARE = [
@@ -141,4 +142,9 @@ LOGGING = {
             "propagate": False,
         },
     },
+}
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
+    ],
 }

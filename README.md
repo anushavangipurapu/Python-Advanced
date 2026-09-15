@@ -1158,6 +1158,422 @@ The Employee REST API includes:
 * Postman testing
 * API documentation
 
+15/09/26
+# DRF-001 — Django REST Framework Setup & Serializers
+
+## Objective
+
+Set up Django REST Framework (DRF) in the Employee Management Backend and create read-only APIs using Django REST Framework serializers.
+
+---
+
+## 1. DRF Installation
+
+Installed Django REST Framework using:
+
+```powershell
+pip install djangorestframework
 ````
->>>>>>> origin/main
+
+DRF was successfully installed and added to the project requirements.
+
+---
+
+## 2. DRF Configuration
+
+Added `rest_framework` to `INSTALLED_APPS` in:
+
+```text
+employee_management/settings.py
+```
+
+Configured basic DRF settings using:
+
+```python
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
+    ],
+}
+```
+
+Verified the configuration using:
+
+```powershell
+python manage.py check
+```
+
+Result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+---
+
+## 3. API Structure
+
+Created a separate API structure inside the `employees` application:
+
+```text
+employees/
+└── api/
+    ├── __init__.py
+    ├── serializers.py
+    ├── views.py
+    └── urls.py
+```
+
+This keeps the REST API code separate from the existing Django application logic.
+
+---
+
+## 4. Employee Serializer
+
+Created `EmployeeSerializer` using Django REST Framework `ModelSerializer`.
+
+File:
+
+```text
+employees/api/serializers.py
+```
+
+The serializer exposes:
+
+* id
+* employee_code
+* first_name
+* last_name
+* email
+* phone
+* department
+* designation
+* salary
+* joining_date
+* is_active
+* created_at
+* updated_at
+
+The following fields are read-only:
+
+* id
+* created_at
+* updated_at
+
+---
+
+## 5. Employee List API
+
+Created the Employee List API:
+
+```text
+GET /api/v1/employees/
+```
+
+The API retrieves employee records using Django ORM:
+
+```python
+Employee.objects.all()
+```
+
+The queryset is serialized using:
+
+```python
+EmployeeSerializer(employees, many=True)
+```
+
+### Response
+
+```text
+HTTP 200 OK
+Content-Type: application/json
+```
+
+The API successfully returns multiple employee records in JSON format.
+
+---
+
+## 6. Employee Detail API
+
+Created the Employee Detail API:
+
+```text
+GET /api/v1/employees/<id>/
+```
+
+Example:
+
+```text
+GET /api/v1/employees/1/
+```
+
+The API retrieves a single employee using the employee ID.
+
+### Existing Employee
+
+For an existing employee ID:
+
+```text
+HTTP 200 OK
+```
+
+The employee details are returned as JSON.
+
+### Non-existing Employee
+
+For an employee ID that does not exist:
+
+```text
+GET /api/v1/employees/999/
+```
+
+Response:
+
+```json
+{
+    "detail": "Employee not found."
+}
+```
+
+Status:
+
+```text
+HTTP 404 Not Found
+```
+
+---
+
+## 7. Invalid Employee ID Format
+
+Tested an invalid ID:
+
+```text
+GET /api/v1/employees/abc/
+```
+
+Result:
+
+```text
+HTTP 404 Not Found
+```
+
+The URL uses:
+
+```python
+<int:id>
+```
+
+Therefore, non-integer values such as `abc` do not match the URL pattern.
+
+---
+
+## 8. API URL Configuration
+
+API URLs are configured in:
+
+```text
+employees/api/urls.py
+```
+
+The project-level URL configuration includes the API using:
+
+```python
+path("api/v1/", include("employees.api.urls"))
+```
+
+Final API endpoints:
+
+```text
+GET /api/v1/employees/
+GET /api/v1/employees/<id>/
+```
+
+---
+
+## 9. Testing Completed
+
+The following tests were completed:
+
+* Employee list API
+* Single employee API
+* Multiple employee records
+* Existing employee ID
+* Non-existing employee ID
+* Invalid employee ID format
+* Empty database behavior
+
+### Empty Database Behavior
+
+When no employee records exist:
+
+```python
+Employee.objects.all()
+```
+
+returns an empty queryset, which is serialized with `many=True` as:
+
+```json
+[]
+```
+
+---
+
+## 10. Debugging Completed
+
+### Debugging 1 — Wrong Serializer Field
+
+Intentionally added an invalid serializer field.
+
+Result:
+
+```text
+ImproperlyConfigured
+```
+
+Root cause:
+
+The field did not exist in the `Employee` model.
+
+The invalid field was removed and the serializer was restored.
+
+---
+
+### Debugging 2 — Wrong Serializer Import
+
+Temporarily imported:
+
+```python
+WrongSerializer
+```
+
+Result:
+
+```text
+ImportError
+```
+
+Root cause:
+
+`WrongSerializer` did not exist.
+
+Restored the correct import:
+
+```python
+from .serializers import EmployeeSerializer
+```
+
+---
+
+### Debugging 3 — Incorrect URL Mapping
+
+Temporarily changed:
+
+```text
+employees/
+```
+
+to:
+
+```text
+employee/
+```
+
+The API returned:
+
+```text
+HTTP 404 Not Found
+```
+
+Root cause:
+
+The requested URL did not match the configured URL pattern.
+
+The correct URL mapping was restored.
+
+---
+
+### Debugging 4 — Incorrect Queryset
+
+Temporarily used:
+
+```python
+Employee.objects.filter(wrong_field="test")
+```
+
+Result:
+
+```text
+FieldError
+```
+
+Root cause:
+
+`wrong_field` does not exist in the `Employee` model.
+
+Restored the correct queryset:
+
+```python
+Employee.objects.all()
+```
+
+Retested successfully with:
+
+```text
+HTTP 200 OK
+```
+
+---
+
+### Debugging 5 — Invalid Employee ID Handling
+
+Tested:
+
+```text
+GET /api/v1/employees/999/
+```
+
+Result:
+
+```text
+HTTP 404 Not Found
+```
+
+Response:
+
+```json
+{
+    "detail": "Employee not found."
+}
+```
+
+The API correctly handles non-existing employee IDs.
+
+---
+
+## 11. Final API Summary
+
+| Method | Endpoint                  | Purpose                | Status        |
+| ------ | ------------------------- | ---------------------- | ------------- |
+| GET    | `/api/v1/employees/`      | Retrieve all employees | 200 OK        |
+| GET    | `/api/v1/employees/<id>/` | Retrieve one employee  | 200 OK        |
+| GET    | `/api/v1/employees/999/`  | Non-existing employee  | 404 Not Found |
+| GET    | `/api/v1/employees/abc/`  | Invalid ID format      | 404 Not Found |
+
+---
+
+## 12. Deliverables
+
+* Django REST Framework installed
+* DRF configured
+* EmployeeSerializer created
+* Employee List API created
+* Employee Detail API created
+* API URL configuration completed
+* Invalid employee handling implemented
+* API testing completed
+* Debugging exercises completed
+* README documentation updated
+
+
+
 
