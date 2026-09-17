@@ -1,30 +1,23 @@
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
 
 from employees.models import Employee
+
 from .serializers import EmployeeSerializer
 
 
-class EmployeeListAPIView(APIView):
+class EmployeeListCreateView(ListCreateAPIView):
 
-    def get(self, request):
-        employees = Employee.objects.all()
-        serializer = EmployeeSerializer(employees, many=True)
+    queryset = Employee.objects.all()
 
-        return Response(serializer.data)
+    serializer_class = EmployeeSerializer
 
 
-class EmployeeDetailAPIView(APIView):
+class EmployeeDetailView(RetrieveUpdateDestroyAPIView):
 
-    def get(self, request, id):
-        try:
-            employee = Employee.objects.get(id=id)
-        except Employee.DoesNotExist:
-            return Response(
-                {"detail": "Employee not found."},
-                status=404
-            )
+    queryset = Employee.objects.all()
 
-        serializer = EmployeeSerializer(employee)
-
-        return Response(serializer.data)
+    serializer_class = EmployeeSerializer
+    

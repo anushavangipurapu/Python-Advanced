@@ -1574,6 +1574,117 @@ The API correctly handles non-existing employee IDs.
 * Debugging exercises completed
 * README documentation updated
 
+16/09/26
 
+# DRF-002 — Generic Views & Complete CRUD API
 
+**Date:** 17-Sep-2026
+
+## Objective
+
+Implemented complete Employee CRUD APIs using Django REST Framework Generic Views.
+
+## Tasks Completed
+
+### 1. Understand HTTP Methods
+
+* GET — Read employee data
+* POST — Create employee
+* PUT — Full update
+* PATCH — Partial update
+* DELETE — Delete employee
+
+### 2. List/Create API
+
+Implemented `ListCreateAPIView` for:
+
+* GET employee list
+* POST new employee
+
+Endpoint:
+
+`/api/v1/employees/`
+
+### 3. Employee Detail API
+
+Implemented `RetrieveUpdateDestroyAPIView` for:
+
+* GET employee by ID
+* PUT full update
+* PATCH partial update
+* DELETE employee
+
+Endpoint:
+
+`/api/v1/employees/<id>/`
+
+### 4. Employee CRUD Operations
+
+Successfully implemented and tested:
+
+* Create Employee
+* Read Employee
+* Update Employee
+* Partial Update Employee
+* Delete Employee
+
+### 5. PostgreSQL Integration
+
+Employee records were successfully created, updated, retrieved, and deleted using the PostgreSQL database.
+
+### 6. API Validation
+
+Implemented and tested:
+
+* Required field validation
+* Employee code validation
+* Email validation
+* Salary validation
+* Duplicate employee code prevention
+* Duplicate email prevention
+
+### 7. API Testing
+
+Tested the following responses:
+
+* GET employee list — 200 OK
+* POST valid employee — 201 Created
+* GET employee by ID — 200 OK
+* PUT employee — 200 OK
+* PATCH employee — 200 OK
+* DELETE employee — 204 No Content
+* Invalid employee ID — 404 Not Found
+* Missing required fields — 400 Bad Request
+* Duplicate employee code — 400 Bad Request
+* Duplicate email — 400 Bad Request
+
+### 8. Debugging Exercises
+
+Completed and fixed:
+
+* Incorrect serializer validation
+* Wrong HTTP status
+* Incorrect lookup field
+* Broken POST request
+* DELETE not working
+
+### 9. Generic Views Verification
+
+Verified `ListCreateAPIView` for GET and POST operations.
+
+Verified `RetrieveUpdateDestroyAPIView` for GET, PUT, PATCH, and DELETE operations.
+
+### 10. Django System Check
+
+Executed:
+
+`python manage.py check`
+
+Result:
+
+**System check identified no issues (0 silenced).**
+
+## Status
+
+**DRF-002 — Generic Views & Complete CRUD API implementation, validation, testing, debugging, and PostgreSQL integration completed successfully.**
 
