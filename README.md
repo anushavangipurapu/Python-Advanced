@@ -1688,3 +1688,211 @@ Result:
 
 **DRF-002 — Generic Views & Complete CRUD API implementation, validation, testing, debugging, and PostgreSQL integration completed successfully.**
 
+17/09/26
+
+# DRF-003 — ViewSets, Routers & API Filtering
+
+## Project Overview
+
+This project implements an Employee REST API using Django REST Framework.
+
+The API uses ViewSets and Routers to provide employee CRUD operations.
+
+## Technologies Used
+
+* Python
+* Django
+* Django REST Framework
+* PostgreSQL
+* Pytest
+
+## Employee CRUD API
+
+Base URL:
+
+`http://127.0.0.1:8000/api/v1/`
+
+### Employee List
+
+**GET**
+
+`/employees/`
+
+Returns all employees.
+
+### Create Employee
+
+**POST**
+
+`/employees/`
+
+Creates a new employee.
+
+### Retrieve Employee
+
+**GET**
+
+`/employees/{id}/`
+
+Returns a specific employee.
+
+### Update Employee
+
+**PUT**
+
+`/employees/{id}/`
+
+Updates all employee details.
+
+### Partial Update
+
+**PATCH**
+
+`/employees/{id}/`
+
+Updates selected employee fields.
+
+### Delete Employee
+
+**DELETE**
+
+`/employees/{id}/`
+
+Deletes an employee.
+
+## ViewSet
+
+The Employee API uses `ModelViewSet`.
+
+It provides these actions:
+
+* list
+* retrieve
+* create
+* update
+* partial_update
+* destroy
+
+## Router
+
+A `DefaultRouter` is used to register the EmployeeViewSet.
+
+The router automatically creates the CRUD API URLs.
+
+## Custom Active Endpoint
+
+**GET**
+
+`/employees/active/`
+
+Returns only active employees.
+
+## Filtering
+
+### Department Filter
+
+`/employees/?department=Backend`
+
+Returns employees from the Backend department.
+
+### Active Filter
+
+`/employees/?is_active=true`
+
+Returns active employees.
+
+### Salary Filter
+
+`/employees/?salary_min=60000`
+
+Returns employees with salary greater than or equal to 60000.
+
+## Search
+
+Search employees using:
+
+`/employees/?search=Divya`
+
+Search fields:
+
+* first_name
+* last_name
+* email
+* employee_code
+* department
+
+## Ordering
+
+### Salary Ascending
+
+`/employees/?ordering=salary`
+
+### Salary Descending
+
+`/employees/?ordering=-salary`
+
+### Joining Date
+
+`/employees/?ordering=joining_date`
+
+## Combined Filtering
+
+Example:
+
+`/employees/?department=Backend&is_active=true&ordering=-salary`
+
+This filters Backend employees, selects active employees, and orders them by salary in descending order.
+
+## Validation
+
+Employee validation includes:
+
+* Employee code
+* Email
+* Salary
+* Required fields
+* Duplicate employee codes
+* Duplicate email addresses
+
+## Testing
+
+Automated API tests were created using Pytest.
+
+Test command:
+
+`pytest tests/test_drf_api.py`
+
+Result:
+
+`6 passed`
+
+The API was also tested manually using PowerShell.
+
+## Debugging
+
+The following debugging scenarios were checked:
+
+* Serializer validation
+* HTTP status codes
+* Lookup field
+* POST request
+* DELETE functionality
+* Router configuration
+* Custom API action
+* Filter parameters
+* Search fields
+* Ordering fields
+
+## API Status Codes
+
+* **200 OK** — Successful GET, PUT, PATCH
+* **201 Created** — Successful POST
+* **204 No Content** — Successful DELETE
+* **400 Bad Request** — Invalid request data
+* **404 Not Found** — Employee does not exist
+
+## Project Status
+
+DRF-003 ViewSets, Routers, CRUD operations, filtering, searching, ordering, validation, testing, and debugging have been completed successfully.
+
+
