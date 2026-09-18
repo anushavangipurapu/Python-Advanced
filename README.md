@@ -1895,4 +1895,558 @@ The following debugging scenarios were checked:
 
 DRF-003 ViewSets, Routers, CRUD operations, filtering, searching, ordering, validation, testing, and debugging have been completed successfully.
 
+18/09/26
+
+# DRF-004 - Pagination, API Validation, Documentation & Code Review
+
+**Date:** 18-Sep-2026
+
+**Project:** Employee Management Backend
+
+**Technology:** Django, Django REST Framework, PostgreSQL
+
+---
+
+## Project Overview
+
+Employee Management REST API v2 is a Django REST Framework project for managing employee records.
+
+The API provides CRUD operations along with validation, filtering, searching, ordering, pagination, standardized error handling, API documentation, testing, performance checking, and code review.
+
+---
+
+## Technologies Used
+
+* Python
+* Django
+* Django REST Framework
+* PostgreSQL
+* Pytest
+* PowerShell
+* VS Code
+
+---
+
+## 1. Pagination
+
+DRF pagination was implemented using `PageNumberPagination`.
+
+### Page Size
+
+```text
+5 employees per page
+```
+
+### Example Requests
+
+```text
+GET /api/v1/employees/?page=1
+```
+
+```text
+GET /api/v1/employees/?page=2
+```
+
+### Pagination Response
+
+```json
+{
+    "count": 30,
+    "next": "http://127.0.0.1:8000/api/v1/employees/?page=2",
+    "previous": null,
+    "results": []
+}
+```
+
+The following pagination fields were tested successfully:
+
+* `count`
+* `next`
+* `previous`
+* `results`
+
+---
+
+## 2. Serializer Validation
+
+Employee serializer validation was implemented and tested.
+
+### Employee Code
+
+* Required
+* Unique
+* Must start with `EMP`
+* Must contain numbers after `EMP`
+
+Example:
+
+```text
+EMP101
+```
+
+### Email
+
+* Required
+* Valid email format
+* Unique
+
+### Salary
+
+* Cannot be negative
+* Cannot exceed `10000000`
+
+### Joining Date
+
+* Must be a valid date
+* Cannot be a future date
+
+### Phone
+
+* Must contain exactly 10 digits
+
+---
+
+## 3. Standard API Error Handling
+
+API errors were standardized to provide understandable responses.
+
+### Employee Not Found
+
+**Status Code:** `404 Not Found`
+
+```json
+{
+    "detail": "Employee not found."
+}
+```
+
+### Validation Error
+
+**Status Code:** `400 Bad Request`
+
+Example:
+
+```json
+{
+    "email": [
+        "Email already exists."
+    ]
+}
+```
+
+---
+
+## 4. API Documentation
+
+Complete API documentation was created in:
+
+```text
+docs/API-DOCUMENTATION.md
+```
+
+The documentation covers:
+
+* Base URL
+* Authentication
+* GET employees
+* POST employee
+* GET employee detail
+* PUT employee
+* PATCH employee
+* DELETE employee
+* Active employees
+* Filtering
+* Searching
+* Ordering
+* Pagination
+* Validation rules
+* Error responses
+* HTTP status codes
+* API testing
+
+---
+
+## 5. API Endpoints
+
+Base URL:
+
+```text
+http://127.0.0.1:8000/api/v1/
+```
+
+| Method | Endpoint             | Description               |
+| ------ | -------------------- | ------------------------- |
+| GET    | `/employees/`        | List employees            |
+| POST   | `/employees/`        | Create employee           |
+| GET    | `/employees/{id}/`   | Retrieve employee         |
+| PUT    | `/employees/{id}/`   | Update employee           |
+| PATCH  | `/employees/{id}/`   | Partially update employee |
+| DELETE | `/employees/{id}/`   | Delete employee           |
+| GET    | `/employees/active/` | Get active employees      |
+
+---
+
+## 6. Filtering
+
+### Department Filter
+
+```text
+GET /api/v1/employees/?department=Backend
+```
+
+### Active Status Filter
+
+```text
+GET /api/v1/employees/?is_active=true
+```
+
+### Minimum Salary Filter
+
+```text
+GET /api/v1/employees/?salary_min=60000
+```
+
+---
+
+## 7. Search
+
+Employee search is supported using the `search` query parameter.
+
+Example:
+
+```text
+GET /api/v1/employees/?search=Divya
+```
+
+Search fields:
+
+* First name
+* Last name
+* Email
+* Employee code
+* Department
+
+---
+
+## 8. Ordering
+
+### Salary Ascending
+
+```text
+GET /api/v1/employees/?ordering=salary
+```
+
+### Salary Descending
+
+```text
+GET /api/v1/employees/?ordering=-salary
+```
+
+### Joining Date
+
+```text
+GET /api/v1/employees/?ordering=joining_date
+```
+
+---
+
+## 9. Combined Filtering
+
+Multiple query parameters can be used together.
+
+Example:
+
+```text
+GET /api/v1/employees/?department=Backend&is_active=true&ordering=-salary
+```
+
+This filters Backend employees, selects active employees, and orders them by salary in descending order.
+
+---
+
+## 10. API Testing
+
+Automated API tests were implemented using Pytest.
+
+Test command:
+
+```powershell
+pytest tests\test_drf_api.py
+```
+
+Test result:
+
+```text
+15 passed
+```
+
+The tests cover:
+
+* Employee list
+* Active employees
+* Department filtering
+* Search
+* Salary ordering
+* Combined filtering
+* Pagination
+* Employee creation
+* Employee retrieval
+* Employee update
+* Partial update
+* Employee deletion
+* Duplicate email validation
+* Negative salary validation
+* Invalid employee ID
+
+---
+
+## 11. Performance Check
+
+API performance was checked using local development testing.
+
+### Response Time
+
+The Employee List API was measured using PowerShell.
+
+Approximate response time:
+
+```text
+0.142 seconds
+142 milliseconds
+```
+
+This is a local development measurement and not a production benchmark.
+
+### Query Count
+
+Database query count was checked for retrieving five employees.
+
+Result:
+
+```text
+Query Count: 1
+Employees Retrieved: 5
+```
+
+Serializer behavior was also checked.
+
+Result:
+
+```text
+Query Count: 1
+Serialized Records: 5
+```
+
+No additional query was generated by the serializer for these flat employee records.
+
+---
+
+## 12. Code Review
+
+The following files were reviewed:
+
+```text
+employees/api/views.py
+employees/api/serializers.py
+employee_management/urls.py
+employees/models.py
+employee_management/settings.py
+```
+
+The review covered:
+
+* Code duplication
+* Naming
+* Validation
+* HTTP status codes
+* Error handling
+* Security configuration
+* Query efficiency
+* Serializer behavior
+* API documentation
+
+No major issues were identified during the review.
+
+---
+
+## 13. Controlled Debugging
+
+Five controlled defects were tested and fixed.
+
+### 1. Pagination Not Working
+
+Pagination configuration was temporarily disabled and then restored.
+
+Pagination was verified successfully after the fix.
+
+### 2. Duplicate Email Accepted
+
+Duplicate email validation was tested.
+
+The API correctly returns:
+
+```text
+400 Bad Request
+```
+
+when an existing email is submitted.
+
+### 3. Invalid Employee Returns 500
+
+Invalid employee ID handling was tested.
+
+The API correctly returns:
+
+```text
+404 Not Found
+```
+
+with:
+
+```json
+{
+    "detail": "Employee not found."
+}
+```
+
+### 4. Search Field Not Working
+
+Employee search was tested using the `search` query parameter.
+
+Search returned the expected employee records successfully.
+
+### 5. Incorrect HTTP Status / Error Response
+
+Employee deletion with an invalid ID was tested.
+
+The API returns:
+
+```text
+404 Not Found
+```
+
+with:
+
+```json
+{
+    "detail": "Employee not found."
+}
+```
+
+---
+
+## 14. HTTP Status Codes
+
+| Status Code | Meaning     |
+| ----------- | ----------- |
+| 200         | OK          |
+| 201         | Created     |
+| 204         | No Content  |
+| 400         | Bad Request |
+| 404         | Not Found   |
+
+---
+
+## 15. API Request Flow
+
+```text
+Client
+   ↓
+URL Router
+   ↓
+ViewSet
+   ↓
+Serializer
+   ↓
+Django ORM
+   ↓
+PostgreSQL
+   ↓
+Serializer
+   ↓
+HTTP Response
+```
+
+---
+
+## 16. Project Structure
+
+```text
+employee_management_backend/
+│
+├── employee_management/
+│   ├── settings.py
+│   ├── urls.py
+│   └── ...
+│
+├── employees/
+│   ├── api/
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   └── routers.py
+│   │
+│   ├── migrations/
+│   ├── models.py
+│   └── ...
+│
+├── tests/
+│   └── test_drf_api.py
+│
+├── docs/
+│   └── API-DOCUMENTATION.md
+│
+├── manage.py
+├── pytest.ini
+└── README.md
+```
+
+---
+
+## 17. Django System Check
+
+The Django project configuration was verified using:
+
+```powershell
+python manage.py check
+```
+
+Result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+---
+
+## 18. Final Project Status
+
+The following DRF-004 tasks were completed successfully:
+
+* Pagination
+* Serializer validation
+* Standard API error handling
+* API documentation
+* API test collection
+* Performance checking
+* Code review
+* Controlled debugging
+
+### Test Result
+
+```text
+15 passed
+```
+
+### Django System Check
+
+```text
+System check identified no issues (0 silenced).
+```
+
+## DRF-004 Status
+
+```text
+COMPLETED
+```
+
 

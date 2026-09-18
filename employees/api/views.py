@@ -1,3 +1,5 @@
+from django.http import Http404
+
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
@@ -10,7 +12,7 @@ from .serializers import EmployeeSerializer
 
 class EmployeeViewSet(ModelViewSet):
 
-    queryset = Employee.objects.all()
+    queryset = Employee.objects.all().order_by("id")
 
     serializer_class = EmployeeSerializer
 
@@ -30,14 +32,16 @@ class EmployeeViewSet(ModelViewSet):
     ]
 
     def get_queryset(self):
-        queryset = Employee.objects.all()
+        queryset = Employee.objects.all().order_by("id")
 
         department = self.request.query_params.get("department")
         is_active = self.request.query_params.get("is_active")
         salary_min = self.request.query_params.get("salary_min")
 
         if department:
-            queryset = queryset.filter(department=department)
+            queryset = queryset.filter(
+                department=department
+            )
 
         if is_active:
             queryset = queryset.filter(
@@ -45,14 +49,47 @@ class EmployeeViewSet(ModelViewSet):
             )
 
         if salary_min:
-            queryset = queryset.filter(salary__gte=salary_min)
+            queryset = queryset.filter(
+                salary__gte=salary_min
+            )
 
         return queryset
 
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            employee = self.get_object()
+        except Http404:
+            return Response(
+                {"detail": "Employee not found."},
+                status=404,
+            )
+
+        serializer = self.get_serializer(employee)
+
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        try:
+            employee = self.get_object()
+        except Http404:
+            return Response(
+                {"detail": "Employee not found."},
+                status=404,
+            )
+
+        employee.delete()
+
+        return Response(status=204)
+
     @action(detail=False, methods=["get"])
     def active(self, request):
-        employees = Employee.objects.filter(is_active=True)
+        employees = Employee.objects.filter(
+            is_active=True
+        ).order_by("id")
 
-        serializer = self.get_serializer(employees, many=True)
+        serializer = self.get_serializer(
+            employees,
+            many=True
+        )
 
         return Response(serializer.data)
