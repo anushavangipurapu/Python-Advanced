@@ -2448,5 +2448,350 @@ System check identified no issues (0 silenced).
 ```text
 COMPLETED
 ```
+21/09/26
+# DB-001 — PostgreSQL Setup & Django Database Migration
+
+## Project Overview
+
+This task integrates PostgreSQL with the Django Employee Management Backend.
+
+The development database was migrated from SQLite to PostgreSQL, and Django ORM was used to communicate with the PostgreSQL database.
+
+---
+
+## Objective
+
+* Understand PostgreSQL database concepts.
+* Install and configure PostgreSQL.
+* Create a PostgreSQL database and user.
+* Connect Django with PostgreSQL.
+* Configure database credentials using environment variables.
+* Run Django migrations.
+* Store and retrieve Employee records using Django ORM.
+* Test PostgreSQL CRUD operations.
+* Verify database and application restart behavior.
+* Debug common PostgreSQL connection issues.
+
+---
+
+## Technologies Used
+
+* Python 3.13.14
+* Django 6.1.1
+* Django REST Framework
+* PostgreSQL 18
+* psycopg
+* python-dotenv
+* PostgreSQL ORM through Django
+
+---
+
+## PostgreSQL Configuration
+
+### Database
+
+```text
+Database Name: employee_management
+Database User: employee_admin
+Host: localhost
+Port: 5432
+```
+
+Database credentials are stored using environment variables.
+
+### Environment Variables
+
+The `.env` file contains the local database configuration.
+
+Example:
+
+```env
+DB_NAME=employee_management
+DB_USER=employee_admin
+DB_PASSWORD=your_password
+DB_HOST=localhost
+DB_PORT=5432
+```
+
+The real `.env` file is excluded from Git.
+
+---
+
+## PostgreSQL Driver
+
+The following packages were installed:
+
+```text
+psycopg==3.3.6
+psycopg-binary==3.3.6
+python-dotenv==1.2.3
+```
+
+They are also included in `requirements.txt`.
+
+---
+
+## Django Database Configuration
+
+Django was configured to use PostgreSQL instead of SQLite.
+
+The database configuration reads the following environment variables:
+
+```text
+DB_NAME
+DB_USER
+DB_PASSWORD
+DB_HOST
+DB_PORT
+```
+
+---
+
+## Migrations
+
+Django migrations were successfully created and applied.
+
+Commands used:
+
+```powershell
+python manage.py makemigrations
+python manage.py migrate
+```
+
+All required migrations completed successfully.
+
+---
+
+## Employee Data
+
+A minimum of 30 Employee records were created successfully in PostgreSQL.
+
+The Employee data was verified using Django ORM.
+
+Employee fields include:
+
+* employee_code
+* first_name
+* last_name
+* email
+* phone
+* department
+* designation
+* salary
+* joining_date
+* is_active
+
+---
+
+## Django ORM Queries
+
+### Get all employees
+
+```python
+Employee.objects.all()
+```
+
+### Get active employees
+
+```python
+Employee.objects.filter(is_active=True)
+```
+
+### Get Backend employees
+
+```python
+Employee.objects.filter(department="Backend")
+```
+
+### Get employees ordered by highest salary
+
+```python
+Employee.objects.order_by("-salary")
+```
+
+All four required ORM queries were executed successfully.
+
+---
+
+## CRUD Testing
+
+PostgreSQL CRUD operations were tested using Django ORM.
+
+### Create
+
+A test employee was successfully created.
+
+### Read
+
+The created employee was successfully retrieved from PostgreSQL.
+
+### Update
+
+The employee salary was successfully updated from `45000` to `55000`.
+
+### Delete
+
+The test employee was successfully deleted.
+
+All CRUD operations were completed successfully.
+
+---
+
+## PostgreSQL Restart Test
+
+The PostgreSQL Windows service was restarted successfully.
+
+Service:
+
+```text
+postgresql-x64-18
+```
+
+After restarting PostgreSQL, the Django application successfully reconnected to the database.
+
+Employee count was verified as:
+
+```text
+Employee count: 30
+```
+
+---
+
+## Django Restart Test
+
+The Django development server was restarted successfully.
+
+The following checks passed:
+
+```text
+System check identified no issues (0 silenced).
+Starting WSGI development server at http://127.0.0.1:8000/
+```
+
+Django successfully connected to PostgreSQL after restart.
+
+---
+
+## Connection Verification
+
+The PostgreSQL connection was verified using Django:
+
+```python
+from django.db import connection
+
+connection.ensure_connection()
+```
+
+Result:
+
+```text
+PostgreSQL connection successful
+```
+
+---
+
+## Debugging
+
+The following PostgreSQL configuration items were verified:
+
+### Database Name
+
+```text
+employee_management
+```
+
+### Database User
+
+```text
+employee_admin
+```
+
+### Database Password
+
+The password was loaded successfully through the environment configuration.
+
+### Database Host
+
+```text
+localhost
+```
+
+### Database Port
+
+```text
+5432
+```
+
+Common PostgreSQL connection issues considered:
+
+1. Wrong database name
+2. Wrong database password
+3. Wrong database port
+4. Missing PostgreSQL driver
+5. Missing environment variable
+6. PostgreSQL service not running
+
+---
+
+## Security
+
+The real database password is stored only in the local `.env` file.
+
+The `.env` file is included in `.gitignore`.
+
+The `.env.example` file contains placeholder values only.
+
+The real database password must never be committed to Git.
+
+---
+
+## Documentation
+
+The following documentation was created:
+
+```text
+POSTGRESQL_NOTES.md
+README.md
+.env.example
+```
+
+`POSTGRESQL_NOTES.md` contains explanations of:
+
+* Database
+* Schema
+* Table
+* Row
+* Column
+* Primary Key
+* Foreign Key
+* Index
+* Constraint
+* Django ORM examples
+
+---
+
+## Project Status
+
+DB-001 — PostgreSQL Setup & Django Database Migration has been completed successfully.
+
+Completed:
+
+* PostgreSQL installation
+* Database and user creation
+* PostgreSQL driver installation
+* Django PostgreSQL configuration
+* Environment variable configuration
+* `.env` protection
+* Django migrations
+* 30 Employee records
+* Django ORM queries
+* CRUD testing
+* PostgreSQL restart testing
+* Django restart testing
+* Connection verification
+* Debugging
+* PostgreSQL documentation
+
+Git commit and push are the final project steps.
 
 
