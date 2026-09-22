@@ -1,5 +1,24 @@
 from django.contrib import admin
-from .models import Employee
+from .models import Employee, Department
+
+
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "code",
+        "is_active",
+        "created_at",
+    )
+
+    search_fields = (
+        "name",
+        "code",
+    )
+
+    list_filter = (
+        "is_active",
+    )
 
 
 @admin.register(Employee)
