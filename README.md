@@ -2818,64 +2818,280 @@ Working tree was clean after the DB-001 commit.
 
 The PostgreSQL integration changes were successfully committed and pushed to the GitHub repository.
 22/09/26
-## DB-002 — Django Relationships
+# DB-002 — Django Relationships
 
-### Objective
+## Objective
 
-Implemented realistic database relationships using:
+Implemented realistic database relationships in the Employee Management System using Django ORM.
 
-- ForeignKey
-- OneToOneField
-- ManyToManyField
+The following relationships were implemented:
 
-### Relationships Implemented
+* ForeignKey
+* OneToOneField
+* ManyToManyField
 
-#### Department → Employee
-- Implemented ForeignKey relationship.
-- One Department can have multiple Employees.
-- Department name and code are unique.
+---
 
-#### Employee → EmployeeProfile
-- Implemented OneToOneField relationship.
-- Each Employee has one EmployeeProfile.
-- Duplicate profiles are prevented.
+## 1. Department Model
 
-#### Employee ↔ Project
-- Implemented ManyToManyField relationship.
-- One Employee can work on multiple Projects.
-- One Project can have multiple Employees.
+Created the `Department` model with the following fields:
 
-### Test Data
+* `id`
+* `name`
+* `code`
+* `description`
+* `is_active`
+* `created_at`
 
-- 5 Departments
-- 30 Employees
-- 30 Employee Profiles
-- 8 Projects
-- Employee-Project assignments
+Added unique constraints for:
 
-### Relationship Testing
+* Department name
+* Department code
 
-Successfully tested:
+Created and tested 5 departments:
 
-- ForeignKey relationship
-- OneToOne relationship
-- ManyToMany relationship
-- Invalid department handling
-- Employee without profile check
-- Duplicate profile prevention
-- Project with multiple employees
-- Department and Project filtering
+* Backend
+* Frontend
+* HR
+* Finance
+* QA
 
-### Migrations
+---
 
-Created and applied migrations for:
+## 2. Employee → Department
 
-- Department
-- Employee Department relationship
-- EmployeeProfile
-- Project
-- Employee-Project ManyToMany relationship
+Implemented a **ForeignKey** relationship between `Employee` and `Department`.
 
-### Status
+### Relationship
 
-DB-002 Django Relationships implementation and testing completed successfully.
+```text
+Department (1) ─────────── Employee (Many)
+```
+
+One department can have multiple employees.
+
+The relationship uses:
+
+```python
+department = models.ForeignKey(
+    Department,
+    on_delete=models.PROTECT,
+    related_name="employees"
+)
+```
+
+Existing employee department data was successfully migrated to the Department table.
+
+---
+
+## 3. Employee → EmployeeProfile
+
+Created the `EmployeeProfile` model with:
+
+* `id`
+* `employee`
+* `date_of_birth`
+* `address`
+* `emergency_contact`
+* `blood_group`
+* `profile_image`
+* `created_at`
+* `updated_at`
+
+Implemented a **OneToOneField** relationship.
+
+### Relationship
+
+```text
+Employee (1) ─────────── EmployeeProfile (1)
+```
+
+Each employee has one profile.
+
+The relationship uses:
+
+```python
+employee = models.OneToOneField(
+    Employee,
+    on_delete=models.CASCADE,
+    related_name="profile"
+)
+```
+
+Created 30 employee profiles.
+
+Duplicate profile creation was tested and prevented successfully.
+
+---
+
+## 4. Project Model
+
+Created the `Project` model with:
+
+* `id`
+* `name`
+* `project_code`
+* `description`
+* `client_name`
+* `start_date`
+* `end_date`
+* `status`
+
+Created 8 projects for testing the employee-project relationship.
+
+---
+
+## 5. Employee ↔ Project
+
+Implemented a **ManyToManyField** relationship between `Employee` and `Project`.
+
+### Relationship
+
+```text
+Employee (Many) ─────────── Project (Many)
+```
+
+One employee can work on multiple projects.
+
+One project can have multiple employees.
+
+The relationship uses:
+
+```python
+projects = models.ManyToManyField(
+    "Project",
+    related_name="employees",
+    blank=True
+)
+```
+
+All 30 employees were assigned to one or more projects.
+
+---
+
+## 6. Database Migrations
+
+Created and applied the required migrations:
+
+```text
+0006_department.py
+0007_employee_department_fk.py
+0008_remove_employee_department_fk_and_more.py
+0009_employeeprofile.py
+0010_project.py
+0011_employee_projects.py
+```
+
+All migrations were successfully applied.
+
+---
+
+## 7. Test Data
+
+The following test data was created:
+
+| Data                         | Count |
+| ---------------------------- | ----: |
+| Departments                  |     5 |
+| Employees                    |    30 |
+| Employee Profiles            |    30 |
+| Projects                     |     8 |
+| Employee-Project Assignments |    61 |
+
+---
+
+## 8. Relationship Queries
+
+The following queries were implemented and tested successfully:
+
+### Get all employees in Backend department
+
+Filtered employees using the Department relationship.
+
+### Get employee profile
+
+Accessed an employee profile using the OneToOne relationship.
+
+### Get projects assigned to an employee
+
+Retrieved projects using the ManyToMany relationship.
+
+### Get employees working on a project
+
+Used the reverse ManyToMany relationship to retrieve employees.
+
+### Get Backend employees working on a specific project
+
+Filtered employees using both Department and Project relationships.
+
+---
+
+## 9. Testing
+
+The following scenarios were tested successfully:
+
+* ForeignKey relationship
+* OneToOne relationship
+* ManyToMany relationship
+* Invalid department handling
+* Employee without profile check
+* Duplicate profile prevention
+* Project with multiple employees
+* Department and Project filtering
+
+### Django System Check
+
+```text
+System check identified no issues (0 silenced).
+```
+
+---
+
+## 10. Git Information
+
+### Branch
+
+```text
+feature/database-relationships
+```
+
+### Commit
+
+```text
+0b574ae
+```
+
+### Commit Message
+
+```text
+feat: implement advanced employee relationships
+```
+
+The DB-002 changes were successfully committed and pushed to GitHub.
+
+### GitHub Repository
+
+https://github.com/anushavangipurapu/Python-Advanced
+
+### GitHub Branch
+
+https://github.com/anushavangipurapu/Python-Advanced/tree/feature/database-relationships
+
+---
+
+## 11. Final Status
+
+**DB-002 — Django Relationships completed successfully.**
+
+Implemented and tested:
+
+* Department → Employee using ForeignKey
+* Employee → EmployeeProfile using OneToOneField
+* Employee ↔ Project using ManyToManyField
+* Database migrations
+* Test data
+* Relationship queries
+* Relationship testing
+* Django system checks
+* Documentation
+* Git commit and GitHub push
