@@ -3095,3 +3095,642 @@ Implemented and tested:
 * Django system checks
 * Documentation
 * Git commit and GitHub push
+
+23/09/26
+# DB-003 — Advanced Django ORM Queries & Reporting
+
+## 1. Task Overview
+
+**Task:** DB-003 — Advanced Django ORM Queries & Reporting
+
+### Objective
+
+Learn and implement advanced Django ORM queries without unnecessary raw SQL.
+
+The task covers:
+
+- Q Objects
+- F Expressions
+- Aggregations
+- Annotations
+- Complex ORM queries
+- Reporting APIs
+- Edge-case verification
+
+---
+
+## 2. Technologies Used
+
+- Python
+- Django
+- Django REST Framework
+- PostgreSQL
+- Django ORM
+- PowerShell
+- VS Code
+- Git
+
+---
+
+## 3. Q Objects
+
+Implemented complex filtering using Django `Q()` objects.
+
+### Example
+
+Employees belonging to either Backend or Data departments:
+
+```python
+from django.db.models import Q
+from employees.models import Employee
+
+employees = Employee.objects.filter(
+    Q(department__code="BE") |
+    Q(department__code="DATA")
+)
+
+employees.values_list(
+    "employee_code",
+    "first_name",
+    "department__name"
+)
+````
+
+### Result
+
+Backend employees were successfully retrieved using the `OR` condition.
+
+---
+
+## 4. F Expressions
+
+Implemented database-side salary updates using Django `F()` expressions.
+
+### Example
+
+Increased the salary of Backend employees by 10%:
+
+```python
+from django.db.models import F
+from employees.models import Employee
+
+Employee.objects.filter(
+    department__code="BE"
+).update(
+    salary=F("salary") * 1.10
+)
+```
+
+### Result
+
+15 Backend employee salary records were updated successfully.
+
+The updated salary values were verified using Django ORM.
+
+---
+
+## 5. Aggregation
+
+Implemented Django ORM aggregation using:
+
+* `Count`
+* `Sum`
+* `Avg`
+* `Min`
+* `Max`
+
+### Salary Report
+
+```python
+from django.db.models import Count, Sum, Avg, Min, Max
+
+salary_report = Employee.objects.aggregate(
+    total_employees=Count("id"),
+    average_salary=Avg("salary"),
+    maximum_salary=Max("salary"),
+    minimum_salary=Min("salary"),
+    total_salary=Sum("salary")
+)
+```
+
+### Result
+
+```text
+Total Employees: 30
+Average Salary: 57566.666666666667
+Maximum Salary: 74800.00
+Minimum Salary: 41000.00
+Total Salary: 1727000.00
+```
+
+---
+
+## 6. Annotation
+
+Implemented department-level statistics using `annotate()`.
+
+### Query
+
+```python
+from django.db.models import Count, Avg, Max
+from employees.models import Department
+
+department_report = Department.objects.annotate(
+    employee_count=Count("employees"),
+    average_salary=Avg("employees__salary"),
+    maximum_salary=Max("employees__salary")
+).values(
+    "name",
+    "employee_count",
+    "average_salary",
+    "maximum_salary"
+)
+```
+
+### Result
+
+| Department | Employees | Average Salary | Maximum Salary |
+| ---------- | --------- | -------------- | -------------- |
+| HR         | 0         | None           | None           |
+| QA         | 0         | None           | None           |
+| Finance    | 0         | None           | None           |
+| Frontend   | 15        | 55000          | 69000          |
+| Backend    | 15        | 60133.33       | 74800          |
+
+---
+
+# 7. Complex ORM Queries
+
+## A. Departments Having More Than 5 Employees
+
+```python
+Department.objects.annotate(
+    employee_count=Count("employees")
+).filter(
+    employee_count__gt=5
+).values(
+    "name",
+    "employee_count"
+)
+```
+
+### Result
+
+```text
+Backend   - 15 employees
+Frontend  - 15 employees
+```
+
+---
+
+## B. Employees Earning More Than Their Department Average
+
+Used `OuterRef`, `Subquery`, `Avg`, and `F`.
+
+```python
+from django.db.models import OuterRef, Subquery, Avg, F
+
+department_average = Employee.objects.filter(
+    department=OuterRef("department")
+).values(
+    "department"
+).annotate(
+    average_salary=Avg("salary")
+).values(
+    "average_salary"
+)
+
+high_earning_employees = Employee.objects.annotate(
+    department_average=Subquery(department_average)
+).filter(
+    salary__gt=F("department_average")
+).values(
+    "employee_code",
+    "first_name",
+    "salary",
+    "department__name",
+    "department_average"
+)
+```
+
+### Result
+
+14 employees earning more than their respective department average were identified.
+
+---
+
+## C. Projects Having More Than 3 Employees
+
+```python
+from django.db.models import Count
+from employees.models import Project
+
+Project.objects.annotate(
+    employee_count=Count("employees")
+).filter(
+    employee_count__gt=3
+).values(
+    "project_code",
+    "name",
+    "employee_count"
+)
+```
+
+### Result
+
+Projects with more than 3 employees were successfully identified.
+
+---
+
+## D. Employees Working on Multiple Projects
+
+```python
+Employee.objects.annotate(
+    project_count=Count(
+        "projects",
+        distinct=True
+    )
+).filter(
+    project_count__gt=1
+).values(
+    "employee_code",
+    "first_name",
+    "project_count"
+)
+```
+
+### Result
+
+Employees assigned to multiple projects were successfully identified.
+
+---
+
+## E. Employees Without an Assigned Project
+
+```python
+Employee.objects.filter(
+    projects__isnull=True
+).values(
+    "employee_code",
+    "first_name"
+)
+```
+
+### Result
+
+```text
+[]
+```
+
+All current employees have at least one project assignment.
+
+---
+
+# 8. Reporting APIs
+
+Implemented the following reporting APIs:
+
+### Department Summary
+
+```text
+GET /api/v1/reports/department-summary/
+```
+
+### Project Summary
+
+```text
+GET /api/v1/reports/project-summary/
+```
+
+### Salary Summary
+
+```text
+GET /api/v1/reports/salary-summary/
+```
+
+---
+
+# 9. Department Summary API
+
+### Endpoint
+
+```text
+GET http://127.0.0.1:8000/api/v1/reports/department-summary/
+```
+
+### Response Structure
+
+```json
+{
+    "department": "Backend",
+    "employee_count": 15,
+    "average_salary": 60133.33,
+    "maximum_salary": 74800
+}
+```
+
+The API returns department-wise employee count and salary statistics.
+
+---
+
+# 10. Project Summary API
+
+### Endpoint
+
+```text
+GET http://127.0.0.1:8000/api/v1/reports/project-summary/
+```
+
+### Response Structure
+
+```json
+{
+    "project": "Employee Management System",
+    "project_code": "PROJ001",
+    "employee_count": 8
+}
+```
+
+The API returns project-wise employee counts.
+
+---
+
+# 11. Salary Summary API
+
+### Endpoint
+
+```text
+GET http://127.0.0.1:8000/api/v1/reports/salary-summary/
+```
+
+### Response
+
+```json
+{
+    "total_employees": 30,
+    "average_salary": 57566.666666666667,
+    "maximum_salary": 74800.00,
+    "minimum_salary": 41000.00,
+    "total_salary": 1727000.00
+}
+```
+
+---
+
+# 12. Edge Case Testing
+
+The following cases were tested successfully.
+
+## Empty Departments
+
+Verified departments with no employees.
+
+```text
+HR       - 0 employees
+QA       - 0 employees
+Finance  - 0 employees
+```
+
+## Departments With Employees
+
+```text
+Backend   - 15 employees
+Frontend  - 15 employees
+```
+
+## Departments With More Than 5 Employees
+
+```text
+Backend   - 15
+Frontend  - 15
+```
+
+## Projects Without Employees
+
+```python
+list(
+    Project.objects.annotate(
+        employee_count=Count("employees")
+    ).filter(
+        employee_count=0
+    ).values(
+        "project_code",
+        "name"
+    )
+)
+```
+
+### Result
+
+```text
+[]
+```
+
+## Employees Without Projects
+
+```python
+list(
+    Employee.objects.filter(
+        projects__isnull=True
+    ).values(
+        "employee_code",
+        "first_name"
+    )
+)
+```
+
+### Result
+
+```text
+[]
+```
+
+---
+
+# 13. API Testing Summary
+
+The following APIs were tested successfully:
+
+| API                | Method | Status |
+| ------------------ | ------ | ------ |
+| Department Summary | GET    | 200 OK |
+| Project Summary    | GET    | 200 OK |
+| Salary Summary     | GET    | 200 OK |
+
+---
+
+# 14. Django System Check
+
+Executed:
+
+```powershell
+python manage.py check
+```
+
+### Result
+
+```text
+System check identified no issues (0 silenced).
+```
+
+---
+
+# 15. Project Structure
+
+```text
+employee_management_backend/
+│
+├── employee_management/
+│   ├── settings.py
+│   ├── urls.py
+│   └── ...
+│
+├── employees/
+│   ├── models.py
+│   ├── views.py
+│   ├── urls.py
+│   └── ...
+│
+├── reports/
+│   ├── views.py
+│   ├── urls.py
+│   └── ...
+│
+├── manage.py
+└── README.md
+```
+
+---
+
+# 16. Reporting URL Configuration
+
+### reports/urls.py
+
+```python
+from django.urls import path
+from .views import (
+    department_summary,
+    project_summary,
+    salary_summary
+)
+
+urlpatterns = [
+    path(
+        "department-summary/",
+        department_summary,
+        name="department-summary"
+    ),
+    path(
+        "project-summary/",
+        project_summary,
+        name="project-summary"
+    ),
+    path(
+        "salary-summary/",
+        salary_summary,
+        name="salary-summary"
+    ),
+]
+```
+
+### Main URL Configuration
+
+```python
+path(
+    "api/v1/reports/",
+    include("reports.urls")
+)
+```
+
+---
+
+# 17. Files Added / Updated
+
+### Added
+
+```text
+reports/
+├── views.py
+├── urls.py
+```
+
+### Updated
+
+```text
+employee_management/urls.py
+employee_management/settings.py
+README.md
+```
+
+---
+
+# 18. Verification Summary
+
+The following Django ORM concepts were implemented and tested:
+
+* Q Objects
+* F Expressions
+* Count
+* Sum
+* Avg
+* Min
+* Max
+* annotate()
+* aggregate()
+* OuterRef
+* Subquery
+* Complex relationship traversal
+* Filtering
+* Reporting APIs
+
+---
+
+# 19. Key Learning Outcomes
+
+Through this task, I learned how to:
+
+1. Build complex filters using `Q()`.
+2. Perform database-side updates using `F()`.
+3. Calculate statistics using aggregation functions.
+4. Generate grouped statistics using `annotate()`.
+5. Compare employee salaries with department averages.
+6. Query departments based on employee counts.
+7. Query projects based on employee counts.
+8. Find employees assigned to multiple projects.
+9. Find employees without project assignments.
+10. Build reporting APIs using Django REST Framework.
+11. Verify ORM results against database data.
+12. Handle empty and populated relationship cases.
+
+---
+
+# 20. Final Task Status
+
+## DB-003 — Advanced Django ORM Queries & Reporting
+
+| Requirement            | Status    |
+| ---------------------- | --------- |
+| Q Objects              | Completed |
+| F Expressions          | Completed |
+| Aggregations           | Completed |
+| Annotations            | Completed |
+| Complex ORM Queries    | Completed |
+| Department Summary API | Completed |
+| Project Summary API    | Completed |
+| Salary Summary API     | Completed |
+| Edge Case Testing      | Completed |
+| API Testing            | Completed |
+| Django System Check    | Completed |
+| Documentation          | Completed |
+
+---
+
+# 21. Final Outcome
+
+The **DB-003 — Advanced Django ORM Queries & Reporting** task was successfully implemented and tested.
+
+The project now supports advanced Django ORM querying, database-side updates, aggregation, annotation, complex relationship queries, and reporting APIs.
+
+All required task requirements were completed successfully.
+
+
