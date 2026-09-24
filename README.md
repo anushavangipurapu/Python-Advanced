@@ -3733,4 +3733,496 @@ The project now supports advanced Django ORM querying, database-side updates, ag
 
 All required task requirements were completed successfully.
 
+24/09/26
 
+# DB-004 — Query Optimization, N+1 Problems & Database Indexing
+
+## 1. Task Overview
+
+**Task:** DB-004 — Query Optimization, N+1 Problems & Database Indexing
+
+### Objective
+
+Identify and fix inefficient database queries in Django applications and improve database performance using Django ORM optimization techniques and appropriate database indexes.
+
+### Topics Covered
+
+* N+1 Query Problem
+* Query Count Measurement
+* `select_related()`
+* `prefetch_related()`
+* Performance Comparison
+* Database Index Evaluation
+* PostgreSQL Query Plans
+* API Query Optimization
+* API Testing
+* Performance Verification
+
+---
+
+## 2. Technologies Used
+
+* Python
+* Django
+* Django REST Framework
+* PostgreSQL
+* Django ORM
+* PowerShell
+* VS Code
+* Postman
+* Git
+
+---
+
+## 3. N+1 Query Problem
+
+The N+1 query problem was identified while accessing related Employee data.
+
+The following relationships were analyzed:
+
+* Employee → Department
+* Employee → EmployeeProfile
+* Employee → Projects
+
+Without optimization, Django generated repeated database queries for related objects.
+
+---
+
+## 4. Query Count Measurement
+
+Django database query logging was used to measure the number of database queries.
+
+### Before Optimization
+
+The Employee data was retrieved and related Department, Profile, and Project data was accessed.
+
+The initial test generated:
+
+```text
+91 queries
+```
+
+This confirmed the N+1 query problem.
+
+---
+
+## 5. select_related() Optimization
+
+`select_related()` was implemented for ForeignKey and OneToOne relationships.
+
+The following relationships were optimized:
+
+* Employee → Department
+* Employee → EmployeeProfile
+
+### Optimized Query
+
+```python
+employees = Employee.objects.select_related(
+    "department",
+    "profile"
+)
+```
+
+### Result
+
+```text
+Before optimization: 31 queries
+After optimization: 1 query
+```
+
+The repeated queries for Department and Profile were reduced successfully.
+
+---
+
+## 6. prefetch_related() Optimization
+
+`prefetch_related()` was implemented for the Employee → Projects ManyToMany relationship.
+
+### Optimized Query
+
+```python
+employees = Employee.objects.prefetch_related("projects")
+```
+
+### Result
+
+```text
+2 queries
+```
+
+The Employee and Project data were retrieved efficiently without executing a separate query for every employee.
+
+---
+
+## 7. Combined Query Optimization
+
+The complete Employee query was optimized using both `select_related()` and `prefetch_related()`.
+
+```python
+employees = (
+    Employee.objects
+    .select_related("department", "profile")
+    .prefetch_related("projects")
+)
+```
+
+This efficiently loads:
+
+* Employee
+* Department
+* Employee Profile
+* Projects
+
+---
+
+## 8. Before and After Performance Comparison
+
+### Before Optimization
+
+```python
+connection.queries_log.clear()
+
+employees = Employee.objects.all()
+
+for employee in employees:
+    employee.department.name
+    employee.profile
+    list(employee.projects.all())
+
+before_queries = len(connection.queries)
+
+print("Before optimization:", before_queries)
+```
+
+### Result
+
+```text
+Before optimization: 91 queries
+```
+
+### After Optimization
+
+```python
+connection.queries_log.clear()
+
+employees = (
+    Employee.objects
+    .select_related("department", "profile")
+    .prefetch_related("projects")
+)
+
+for employee in employees:
+    employee.department.name
+    employee.profile
+    list(employee.projects.all())
+
+after_queries = len(connection.queries)
+
+print("After optimization:", after_queries)
+```
+
+### Result
+
+```text
+After optimization: 2 queries
+```
+
+### Performance Comparison
+
+| Metric           | Before | After |
+| ---------------- | -----: | ----: |
+| Database Queries |     91 |     2 |
+
+The database query count was successfully reduced from **91 queries to 2 queries**.
+
+---
+
+## 9. Database Index Evaluation
+
+The following commonly searched, filtered, or ordered fields were evaluated:
+
+* `employee_code`
+* `email`
+* `department`
+* `is_active`
+* `joining_date`
+
+Existing database indexes were checked before adding new indexes.
+
+### Existing PostgreSQL Indexes
+
+```text
+employees_employee_pkey
+employees_employee_employee_code_key
+employees_employee_email_key
+employees_employee_employee_code_fb9b0c8f_like
+employees_employee_email_14fffd5e_like
+employees_employee_department_fk_id_f66e261d
+```
+
+### Index Evaluation
+
+| Field           | Evaluation                                      |
+| --------------- | ----------------------------------------------- |
+| `employee_code` | Already indexed through unique constraint       |
+| `email`         | Already indexed through unique constraint       |
+| `department`    | Already indexed through ForeignKey              |
+| `is_active`     | Evaluated based on filtering usage              |
+| `joining_date`  | Evaluated based on filtering and ordering usage |
+
+Duplicate indexes were not added where suitable indexes already existed.
+
+---
+
+## 10. PostgreSQL Query Plan Analysis
+
+PostgreSQL `EXPLAIN ANALYZE` was used to understand query execution.
+
+### Query
+
+```sql
+EXPLAIN ANALYZE
+SELECT *
+FROM employees_employee
+WHERE employee_code = 'EMP001';
+```
+
+### Query Plan
+
+```text
+Seq Scan on employees_employee
+```
+
+### Execution Details
+
+```text
+Rows: 1
+Rows Removed by Filter: 29
+Planning Time: 7.151 ms
+Execution Time: 0.076 ms
+```
+
+### Explanation
+
+PostgreSQL selected a Sequential Scan because the Employee table contains only 30 records.
+
+For a small table, scanning the table can be cheaper than using an index.
+
+The existing index is still valid and available for larger datasets or queries where PostgreSQL determines that an index scan is more efficient.
+
+---
+
+## 11. PostgreSQL Query Plan Terms
+
+### Sequential Scan
+
+PostgreSQL checks rows sequentially from the table.
+
+### Index Scan
+
+PostgreSQL uses an index to locate matching rows.
+
+### Cost
+
+The estimated cost of executing a query.
+
+### Rows
+
+The number of rows expected or processed.
+
+### Execution Time
+
+The actual time taken to execute the query.
+
+---
+
+## 12. Employee Details API Optimization
+
+An Employee Details API was implemented and optimized.
+
+### Endpoint
+
+```text
+GET /api/employees/details/
+```
+
+The API returns:
+
+* Employee information
+* Department information
+* Employee Profile
+* Project information
+
+### Optimized Queryset
+
+```python
+employees = (
+    Employee.objects
+    .select_related("department", "profile")
+    .prefetch_related("projects")
+)
+```
+
+The optimized queryset avoids unnecessary repeated database queries.
+
+---
+
+## 13. API Testing
+
+The optimized API was tested successfully.
+
+### Request
+
+```text
+GET http://127.0.0.1:8000/api/employees/details/
+```
+
+### Result
+
+```text
+Status Code: 200 OK
+```
+
+The API returned the required employee, department, profile, and project information.
+
+The functional response remained unchanged after optimization.
+
+---
+
+## 14. API Query Count Verification
+
+The optimized endpoint was tested using Django query capture.
+
+### Result
+
+```text
+API Query Count: 2
+```
+
+The Employee Details API successfully returned the required data using only **2 database queries**.
+
+---
+
+## 15. Django System Check
+
+The project was verified using:
+
+```powershell
+python manage.py check
+```
+
+### Result
+
+```text
+System check identified no issues (0 silenced).
+```
+
+---
+
+## 16. Testing Summary
+
+| Test                           | Status    |
+| ------------------------------ | --------- |
+| N+1 Problem Identification     | Completed |
+| Query Count Measurement        | Completed |
+| `select_related()` Testing     | Completed |
+| `prefetch_related()` Testing   | Completed |
+| Before/After Query Comparison  | Completed |
+| Database Index Evaluation      | Completed |
+| PostgreSQL Query Plan Analysis | Completed |
+| Employee Details API           | Completed |
+| API Response Testing           | Completed |
+| API Query Count Verification   | Completed |
+| Django System Check            | Completed |
+
+---
+
+## 17. Deliverables
+
+The following deliverables were completed:
+
+```text
+QUERY_OPTIMIZATION.md
+DATABASE_INDEXES.md
+Optimized Employee Details Queryset
+Performance Comparison
+Employee Details API
+API Query Count Verification
+PostgreSQL Query Plan Analysis
+```
+
+---
+
+## 18. Final Performance Result
+
+### Before Optimization
+
+```text
+91 database queries
+```
+
+### After Optimization
+
+```text
+2 database queries
+```
+
+### Performance Improvement
+
+```text
+91 → 2 queries
+```
+
+The N+1 query problem was successfully identified and fixed using Django ORM relationship optimization.
+
+---
+
+## 19. Key Learning Outcomes
+
+Through this task, I learned how to:
+
+1. Identify the N+1 query problem.
+2. Measure Django database query counts.
+3. Identify repeated database queries.
+4. Use `select_related()` for ForeignKey relationships.
+5. Use `select_related()` for OneToOne relationships.
+6. Use `prefetch_related()` for ManyToMany relationships.
+7. Compare database performance before and after optimization.
+8. Evaluate database indexes.
+9. Avoid unnecessary duplicate indexes.
+10. Analyze PostgreSQL query plans.
+11. Understand Sequential Scan and Index Scan.
+12. Understand query cost and execution time.
+13. Optimize Django API database queries.
+14. Verify that API responses remain functionally identical after optimization.
+
+---
+
+## 20. Final Task Status
+
+### DB-004 — Query Optimization, N+1 Problems & Database Indexing
+
+| Requirement                       | Status      |
+| --------------------------------- | ----------- |
+| N+1 Problem Identified            | ✅ Completed |
+| Query Count Measured              | ✅ Completed |
+| `select_related()` Implemented    | ✅ Completed |
+| `prefetch_related()` Implemented  | ✅ Completed |
+| Before/After Performance Compared | ✅ Completed |
+| Database Indexes Evaluated        | ✅ Completed |
+| PostgreSQL Query Plan Analyzed    | ✅ Completed |
+| Employee Details API Optimized    | ✅ Completed |
+| API Response Tested               | ✅ Completed |
+| Query Count Verified              | ✅ Completed |
+| Documentation Completed           | ✅ Completed |
+
+### Final Outcome
+
+The **DB-004 — Query Optimization, N+1 Problems & Database Indexing** task was successfully completed and tested.
+
+The N+1 query problem was identified and optimized using `select_related()` and `prefetch_related()`.
+
+The database query count was reduced from **91 queries to 2 queries**, while maintaining the same functional API response.
+
+.

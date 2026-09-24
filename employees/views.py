@@ -1,3 +1,4 @@
+
 import json
 import logging
 
@@ -6,7 +7,6 @@ from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import Employee
-
 
 logger = logging.getLogger("employees")
 
@@ -243,3 +243,47 @@ def employee_detail(request, id):
 
 def invalid_redirect(request):
     return redirect("employee-list")
+
+
+def employee_details(request):
+    if request.method != "GET":
+        return JsonResponse({
+            "status": "error",
+            "message": "Method not allowed"
+        }, status=405)
+
+    employees = (
+        Employee.objects
+        .select_related("department", "profile")
+        .prefetch_related("projects")
+    )
+
+    data = []
+
+    for employee in employees:
+        data.append({
+            "id": employee.id,
+            "employee_code": employee.employee_code,
+            "first_name": employee.first_name,
+            "last_name": employee.last_name,
+            "email": employee.email,
+            "department": employee.department.name
+            if employee.department else None,
+            "profile": {
+                "date_of_birth": str(employee.profile.date_of_birth)
+                if employee.profile.date_of_birth else None,
+                "address": employee.profile.address,
+                "emergency_contact": employee.profile.emergency_contact,
+                "blood_group": employee.profile.blood_group,
+            } if hasattr(employee, "profile") else None,
+            "projects": [
+                project.name
+                for project in employee.projects.all()
+            ],
+        })
+
+    return JsonResponse({
+        "status": "success",
+        "employees": data
+    })
+
