@@ -4225,4 +4225,231 @@ The N+1 query problem was identified and optimized using `select_related()` and 
 
 The database query count was reduced from **91 queries to 2 queries**, while maintaining the same functional API response.
 
-.
+28/09/26
+# SEC-001 — User Authentication & Secure Password Management
+
+## Objective
+
+Implement proper user authentication and understand Django password security.
+
+## Tasks Completed
+
+### 1. Authentication vs Authorization
+
+Documented the difference between Authentication and Authorization.
+
+* **Authentication** verifies the identity of a user.
+* **Authorization** determines what an authenticated user is allowed to access or perform.
+
+Documentation created in:
+
+`AUTHENTICATION_NOTES.md`
+
+### 2. Django User System
+
+Reviewed Django's built-in `User` model and its important fields:
+
+* `username`
+* `email`
+* `password`
+* `first_name`
+* `last_name`
+* `is_active`
+* `is_staff`
+* `is_superuser`
+
+Verified that Django does not store passwords as plain text.
+
+### 3. Registration API
+
+Implemented:
+
+```text
+POST /api/v1/auth/register/
+```
+
+Registration fields:
+
+```json
+{
+    "username": "final_auth_test",
+    "email": "final_auth_test@example.com",
+    "password": "StrongPass@123",
+    "password_confirm": "StrongPass@123",
+    "first_name": "Anusha",
+    "last_name": "V"
+}
+```
+
+A successful registration returns HTTP `201 Created`.
+
+### 4. Registration Validation
+
+Implemented validation for:
+
+* Required username
+* Unique username
+* Required email
+* Valid email format
+* Unique email
+* Required password
+* Password strength
+* Password confirmation
+
+Tested weak password such as:
+
+```text
+123
+```
+
+Django password validation correctly rejects weak passwords.
+
+### 5. Secure Password Storage
+
+Used Django's:
+
+```python
+User.objects.create_user()
+```
+
+instead of storing passwords directly.
+
+Verified the database password value starts with:
+
+```text
+pbkdf2_sha256$
+```
+
+This confirms that the password is stored as a hash instead of plain text.
+
+### 6. Login API
+
+Implemented:
+
+```text
+POST /api/v1/auth/login/
+```
+
+The login API authenticates the username and password using Django authentication.
+
+Successful login returns HTTP `200 OK`.
+
+Invalid username or password returns an authentication error.
+
+### 7. Account Validation
+
+Implemented inactive-account validation.
+
+Users with:
+
+```python
+is_active = False
+```
+
+cannot authenticate successfully.
+
+### 8. API Testing
+
+The following test cases were completed:
+
+| Test Case             | Status |
+| --------------------- | ------ |
+| Valid Registration    | Passed |
+| Duplicate Username    | Passed |
+| Duplicate Email       | Passed |
+| Weak Password         | Passed |
+| Password Confirmation | Passed |
+| Wrong Password        | Passed |
+| Wrong Username        | Passed |
+| Inactive User         | Passed |
+| Missing Fields        | Passed |
+| Invalid Email         | Passed |
+
+### 9. Debugging Exercises
+
+The following issues were intentionally introduced and fixed:
+
+#### Incorrect Password Storage
+
+Incorrect:
+
+```python
+User.objects.create(
+    username="test_user",
+    password="PlainPassword123"
+)
+```
+
+Correct:
+
+```python
+User.objects.create_user(
+    username="test_user",
+    password="PlainPassword123"
+)
+```
+
+#### Duplicate Email
+
+Temporarily removed duplicate-email validation, tested the issue, and restored the validation.
+
+#### Inactive User Login
+
+Tested inactive-user authentication and restored the secure authentication flow.
+
+#### Missing Password Validation
+
+Temporarily removed password validation, tested weak password acceptance, and restored:
+
+```python
+validators=[validate_password]
+```
+
+## API Endpoints
+
+### Register
+
+```text
+POST /api/v1/auth/register/
+```
+
+### Login
+
+```text
+POST /api/v1/auth/login/
+```
+
+## Security Measures
+
+* Passwords are never stored as plain text.
+* Django password hashing is used.
+* Weak passwords are rejected.
+* Duplicate usernames are rejected.
+* Duplicate emails are rejected.
+* Password confirmation is validated.
+* Invalid credentials are rejected.
+* Inactive users cannot authenticate.
+
+## Files Created/Updated
+
+```text
+accounts/
+├── serializers.py
+├── views.py
+└── urls.py
+
+AUTHENTICATION_NOTES.md
+```
+
+## Validation Check
+
+Django system check completed successfully:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+## Conclusion
+
+The **SEC-001 — User Authentication & Secure Password Management** task was implemented and tested successfully. User registration, validation, secure password storage, login authentication, inactive-account validation, debugging exercises, and API testing were completed.
+
