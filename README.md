@@ -4453,3 +4453,372 @@ System check identified no issues (0 silenced).
 
 The **SEC-001 — User Authentication & Secure Password Management** task was implemented and tested successfully. User registration, validation, secure password storage, login authentication, inactive-account validation, debugging exercises, and API testing were completed.
 
+25/09/26
+# DB-005 — Database Transactions, Employee Transfer & Epic Review
+
+## Overview
+
+Implemented an Employee Department Transfer workflow using Django, Django REST Framework, and PostgreSQL.
+
+The task focused on database transactions, employee department transfers, transfer history, validation, rollback handling, advanced Django ORM queries, query optimization, database indexes, and PostgreSQL query analysis.
+
+---
+
+## 1. EmployeeTransfer Model
+
+Created the `EmployeeTransfer` model with the following fields:
+
+* `employee`
+* `from_department`
+* `to_department`
+* `reason`
+* `transferred_by`
+* `transferred_at`
+* `status`
+
+Supported transfer statuses:
+
+* PENDING
+* APPROVED
+* REJECTED
+* COMPLETED
+
+The model uses ForeignKey relationships with Employee and Department.
+
+---
+
+## 2. EmployeeTransferService
+
+Created `EmployeeTransferService` to handle employee department transfers.
+
+The service performs the following operations:
+
+1. Finds the employee.
+2. Verifies that the employee exists.
+3. Verifies that the employee is active.
+4. Finds the target department.
+5. Verifies that the target department exists.
+6. Verifies that the target department is active.
+7. Checks that the target department is different from the current department.
+8. Validates the transfer reason.
+9. Creates the employee transfer history.
+10. Updates the employee department.
+11. Saves the transfer operation.
+
+---
+
+## 3. Database Transactions
+
+Implemented Django's `transaction.atomic()` for the employee transfer operation.
+
+The transaction ensures that the complete transfer operation is treated as one database transaction.
+
+If an error occurs during the operation, the database changes are rolled back.
+
+---
+
+## 4. Transfer API
+
+Implemented:
+
+```text
+POST /api/v1/employees/<id>/transfer/
+```
+
+Example request:
+
+```json
+{
+    "to_department": 3,
+    "reason": "Project requirement"
+}
+```
+
+The API updates the employee department and creates a transfer history record.
+
+---
+
+## 5. Transfer History API
+
+Implemented:
+
+```text
+GET /api/v1/employees/<id>/transfer-history/
+```
+
+The API returns the employee's previous department transfers including:
+
+* Transfer ID
+* From department
+* To department
+* Reason
+* Status
+* Transfer date
+* Employee information
+
+---
+
+## 6. Successful Transfer Testing
+
+The following transfer scenarios were tested successfully:
+
+```text
+Backend → HR
+HR → Finance
+Finance → Backend
+```
+
+The employee department was updated successfully and transfer history records were created.
+
+---
+
+## 7. Validation Testing
+
+The following validation scenarios were tested:
+
+### Invalid Employee
+
+```text
+Employee not found.
+```
+
+### Invalid Department
+
+```text
+Target department not found.
+```
+
+### Same Department
+
+```text
+Employee is already in this department.
+```
+
+### Inactive Employee
+
+```text
+Employee is inactive.
+```
+
+### Missing Reason
+
+```text
+Transfer reason is required.
+```
+
+All required validation scenarios were tested successfully.
+
+---
+
+## 8. Transaction Rollback Testing
+
+A failure scenario was intentionally created inside `transaction.atomic()`.
+
+The employee department was temporarily changed and an intentional exception was raised.
+
+The database automatically rolled back the department change.
+
+The final department was verified to be the original department.
+
+Example result:
+
+```text
+Before: Backend
+Inside transaction: Frontend
+Error: Intentional rollback test
+After rollback: Backend
+```
+
+This confirmed that transaction rollback is working correctly.
+
+---
+
+## 9. PostgreSQL Connection Review
+
+Verified Django's database configuration.
+
+```text
+Database Engine: django.db.backends.postgresql
+Database Name: employee_management
+Connection: postgresql
+```
+
+The Django application is successfully connected to PostgreSQL.
+
+---
+
+## 10. Database Relationships Review
+
+Verified the required Django relationships:
+
+```text
+Employee → Department
+ForeignKey
+
+EmployeeProfile → Employee
+OneToOneField
+
+Employee ↔ Project
+ManyToManyField
+
+EmployeeTransfer → Department
+ForeignKey
+```
+
+All required relationships were verified successfully.
+
+---
+
+## 11. Advanced ORM Review
+
+Verified Django ORM aggregation using:
+
+```python
+annotate()
+Count()
+```
+
+Department-wise employee counts were successfully retrieved.
+
+Example result:
+
+```text
+HR       → 0
+QA       → 0
+Finance  → 0
+Frontend → 14
+Backend  → 16
+```
+
+Total employee records verified: 30.
+
+---
+
+## 12. Q and F Expressions
+
+Verified Django ORM `Q()` and `F()` expressions.
+
+Example:
+
+```python
+Q(is_active=True) | Q(salary__gte=50000)
+```
+
+Result:
+
+```text
+Q query count: 28
+```
+
+An `F()` expression query was also executed successfully.
+
+```text
+F query count: 0
+```
+
+---
+
+## 13. Query Optimization Review
+
+Verified the use of:
+
+```python
+select_related()
+prefetch_related()
+```
+
+Test results:
+
+```text
+select_related queries: 1
+prefetch_related queries: 2
+```
+
+This confirms that related data can be fetched efficiently and helps prevent N+1 query problems.
+
+---
+
+## 14. Database Index Review
+
+Verified the Employee model indexes:
+
+```text
+employee_code db_index: False
+employee_code unique: True
+
+email db_index: False
+email unique: True
+
+department db_index: True
+```
+
+`employee_code` and `email` use `unique=True`, which provides unique database indexes.
+
+---
+
+## 15. PostgreSQL Query Analysis
+
+Used PostgreSQL `EXPLAIN ANALYZE` to inspect query execution.
+
+Example query:
+
+```sql
+EXPLAIN ANALYZE
+SELECT *
+FROM employees_employee
+WHERE employee_code = 'EMP001';
+```
+
+The query plan showed:
+
+```text
+Seq Scan on employees_employee
+Rows Removed by Filter: 29
+Planning Time: 6.858 ms
+Execution Time: 0.160 ms
+```
+
+The sequential scan is reasonable for the current small dataset of 30 employees.
+
+---
+
+## 16. Technologies Used
+
+* Python
+* Django
+* Django REST Framework
+* PostgreSQL
+* Django ORM
+* Django Transactions
+* PostgreSQL EXPLAIN ANALYZE
+
+---
+
+## 17. Testing Summary
+
+The following areas were tested successfully:
+
+* Employee department transfer
+* Transfer history
+* Invalid employee validation
+* Invalid department validation
+* Same department validation
+* Inactive employee validation
+* Missing reason validation
+* Transaction rollback
+* PostgreSQL connection
+* Database relationships
+* ORM aggregation
+* Q expressions
+* F expressions
+* Query optimization
+* Database indexes
+* PostgreSQL query analysis
+
+---
+
+## Conclusion
+
+The DB-005 Employee Transfer workflow was implemented using Django ORM and PostgreSQL transactions.
+
+The transfer API, transfer history, validations, transaction rollback, database relationships, ORM queries, query optimization, indexes, and PostgreSQL query analysis were implemented and tested successfully.
