@@ -4822,3 +4822,241 @@ The following areas were tested successfully:
 The DB-005 Employee Transfer workflow was implemented using Django ORM and PostgreSQL transactions.
 
 The transfer API, transfer history, validations, transaction rollback, database relationships, ORM queries, query optimization, indexes, and PostgreSQL query analysis were implemented and tested successfully.
+
+29/09/26
+# SEC-002 — JWT Authentication & Protected APIs
+
+## Objective
+
+Implemented JWT-based authentication for the Django REST Framework Employee Management API and protected the Employee APIs using JWT authentication.
+
+## Tasks Completed
+
+### 1. Understand JWT
+
+Learned the basic JWT structure:
+
+* Header
+* Payload
+* Signature
+* Access Token
+* Refresh Token
+* Token Expiration
+* Signature Validation
+
+### 2. Install JWT Authentication Package
+
+Installed Django REST Framework Simple JWT:
+
+```bash
+pip install djangorestframework-simplejwt
+```
+
+Configured JWT authentication in Django REST Framework.
+
+### 3. Configure JWT Authentication
+
+Updated `settings.py` with JWT authentication:
+
+```python
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
+    ],
+
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+
+    "PAGE_SIZE": 5,
+}
+```
+
+Configured token expiration:
+
+```python
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+}
+```
+
+### 4. Create Token APIs
+
+Implemented JWT token endpoints:
+
+```text
+POST /api/v1/auth/token/
+```
+
+Used for generating access and refresh tokens.
+
+```text
+POST /api/v1/auth/token/refresh/
+```
+
+Used for generating a new access token using the refresh token.
+
+### 5. Protect Employee APIs
+
+Configured the Employee API to require authentication:
+
+```python
+permission_classes = [IsAuthenticated]
+```
+
+The Employee APIs can only be accessed with a valid JWT access token.
+
+### 6. Test Without Token
+
+Tested the Employee API without authentication.
+
+Result:
+
+```text
+401 Unauthorized
+```
+
+Response:
+
+```json
+{
+    "detail": "Authentication credentials were not provided."
+}
+```
+
+This confirmed that anonymous requests are rejected.
+
+### 7. Test With Valid Access Token
+
+Tested the Employee API using a valid JWT access token.
+
+Result:
+
+```text
+200 OK
+```
+
+The API successfully returned the employee records.
+
+The response contained:
+
+```text
+count: 30
+```
+
+### 8. Test Token Refresh
+
+Tested the refresh token API successfully.
+
+Request:
+
+```text
+POST /api/v1/auth/token/refresh/
+```
+
+A new access token was successfully generated using the refresh token.
+
+### 9. Test Invalid Token
+
+Tested the Employee API with an invalid token.
+
+Result:
+
+```text
+401 Unauthorized
+```
+
+The invalid token was rejected successfully.
+
+### 10. Test Modified Token
+
+Tested the API by modifying a valid JWT token.
+
+The modified token failed authentication and was rejected by the JWT authentication system.
+
+## Authentication Testing Summary
+
+| Test               | Result                     |
+| ------------------ | -------------------------- |
+| No Token           | 401 Unauthorized           |
+| Valid Access Token | 200 OK                     |
+| Invalid Token      | 401 Unauthorized           |
+| Modified Token     | 401 Unauthorized           |
+| Refresh Token      | New Access Token Generated |
+
+## API Endpoints
+
+### Generate JWT Token
+
+```text
+POST /api/v1/auth/token/
+```
+
+Example request:
+
+```json
+{
+    "username": "auth_test_user",
+    "password": "AuthTest@12345"
+}
+```
+
+Response:
+
+```json
+{
+    "access": "...",
+    "refresh": "..."
+}
+```
+
+### Refresh JWT Token
+
+```text
+POST /api/v1/auth/token/refresh/
+```
+
+Example request:
+
+```json
+{
+    "refresh": "YOUR_REFRESH_TOKEN"
+}
+```
+
+Response:
+
+```json
+{
+    "access": "NEW_ACCESS_TOKEN"
+}
+```
+
+### Protected Employee API
+
+```text
+GET /api/v1/employees/
+```
+
+Authorization:
+
+```text
+Bearer ACCESS_TOKEN
+```
+
+## Security
+
+* JWT authentication is enabled for protected APIs.
+* Access tokens are short-lived.
+* Refresh tokens are used to obtain new access tokens.
+* Requests without authentication are rejected.
+* Invalid tokens are rejected.
+* Modified tokens are rejected.
+* Employee APIs require authenticated users.
+
+## Result
+
+JWT authentication was successfully configured and integrated with the Django REST Framework Employee Management API. Token generation, token refresh, protected API access, invalid token handling, and modified token validation were tested successfully.

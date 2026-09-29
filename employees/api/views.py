@@ -2,6 +2,7 @@ from django.http import Http404
 
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -12,6 +13,8 @@ from .serializers import EmployeeSerializer
 
 
 class EmployeeViewSet(ModelViewSet):
+
+    permission_classes = [IsAuthenticated]
 
     queryset = Employee.objects.all().order_by("id")
 
