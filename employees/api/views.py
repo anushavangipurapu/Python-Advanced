@@ -7,6 +7,12 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from employees.models import Employee, EmployeeTransfer
+from employees.permissions import (
+    IsAdmin,
+    IsHR,
+    IsManager,
+    IsEmployee,
+)
 from employees.services import EmployeeTransferService
 
 from .serializers import EmployeeSerializer
@@ -14,10 +20,7 @@ from .serializers import EmployeeSerializer
 
 class EmployeeViewSet(ModelViewSet):
 
-    permission_classes = [IsAuthenticated]
-
     queryset = Employee.objects.all().order_by("id")
-
     serializer_class = EmployeeSerializer
 
     filter_backends = [SearchFilter, OrderingFilter]
@@ -35,8 +38,49 @@ class EmployeeViewSet(ModelViewSet):
         "joining_date",
     ]
 
+    def get_permissions(self):
+
+        if self.action in ["create", "update", "partial_update"]:
+            permission_classes = [IsAdmin | IsHR]
+
+        elif self.action == "destroy":
+            permission_classes = [IsAdmin]
+
+        elif self.action == "transfer":
+            permission_classes = [IsAdmin | IsHR | IsManager]
+
+        elif self.action == "transfer_history":
+            permission_classes = [
+                IsAdmin | IsHR | IsManager | IsEmployee
+            ]
+
+        elif self.action in ["list", "retrieve", "active"]:
+            permission_classes = [
+                IsAdmin | IsHR | IsManager | IsEmployee
+            ]
+
+        else:
+            permission_classes = [
+                IsAdmin | IsHR | IsManager | IsEmployee
+            ]
+
+        return [
+            permission_class()
+            for permission_class in permission_classes
+        ]
+
     def get_queryset(self):
         queryset = Employee.objects.all().order_by("id")
+
+        # Employee can access only their own Employee record.
+        if (
+            self.request.user.is_authenticated
+            and hasattr(self.request.user, "employee_profile")
+            and self.request.user.employee_profile.role == "EMPLOYEE"
+        ):
+            queryset = queryset.filter(
+                user=self.request.user
+            )
 
         department = self.request.query_params.get("department")
         is_active = self.request.query_params.get("is_active")
@@ -87,7 +131,7 @@ class EmployeeViewSet(ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def active(self, request):
-        employees = Employee.objects.filter(
+        employees = self.get_queryset().filter(
             is_active=True
         ).order_by("id")
 
@@ -188,3 +232,24 @@ class EmployeeViewSet(ModelViewSet):
                 "transfer_history": data,
             }
         )
+        from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+
+
+class MyProfileAPIView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        try:
+            employee = request.user.employee_profile
+        except Employee.DoesNotExist:
+            return Response(
+                {"detail": "Employee profile not found."},
+                status=404,
+            )
+
+        serializer = EmployeeSerializer(employee)
+
+        return Response(serializer.data)

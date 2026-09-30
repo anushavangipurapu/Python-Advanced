@@ -14,6 +14,28 @@ class Department(models.Model):
 
 
 class Employee(models.Model):
+
+    ROLE_CHOICES = [
+        ("ADMIN", "Admin"),
+        ("HR", "HR"),
+        ("MANAGER", "Manager"),
+        ("EMPLOYEE", "Employee"),
+    ]
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="employee_profile",
+    )
+
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        default="EMPLOYEE",
+    )
+
     employee_code = models.CharField(max_length=20, unique=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)

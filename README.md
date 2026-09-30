@@ -5060,3 +5060,407 @@ Bearer ACCESS_TOKEN
 ## Result
 
 JWT authentication was successfully configured and integrated with the Django REST Framework Employee Management API. Token generation, token refresh, protected API access, invalid token handling, and modified token validation were tested successfully.
+
+30/09/26
+
+# DAY 18 — 30-Sep-2026
+
+# Jira Task: SEC-003 — Role-Based Access Control & Permissions
+
+## Objective
+
+Implement role-based authorization so that different users can perform different operations based on their assigned roles and ownership.
+
+The four required roles are:
+
+* ADMIN
+* HR
+* MANAGER
+* EMPLOYEE
+
+---
+
+# Step 1 — Define Roles
+
+The following roles were defined and their responsibilities were documented.
+
+## ADMIN
+
+* Can manage employee information.
+* Can create employees.
+* Can update employees.
+* Can delete employees.
+* Can access permitted employee information.
+
+## HR
+
+* Can manage employee information.
+* Can create employees.
+* Can update employees.
+* Can view employees.
+* Cannot perform restricted delete operations.
+
+## MANAGER
+
+* Can view employees within the permitted business scope.
+* Cannot create employees.
+* Cannot perform unrestricted update operations.
+* Cannot delete employees.
+
+## EMPLOYEE
+
+* Can access their own permitted information.
+* Cannot create employees.
+* Cannot delete employees.
+* Employee data access is restricted based on ownership.
+
+---
+
+# Step 2 — Add User Role
+
+A role mechanism was added to associate a Django user with an employee profile.
+
+The Employee model contains:
+
+* User relationship
+* Role field
+* Role choices
+
+Supported role values:
+
+```text
+ADMIN
+HR
+MANAGER
+EMPLOYEE
+```
+
+The user-to-employee relationship is used to identify the authenticated user's role and ownership.
+
+---
+
+# Step 3 — Create Custom Permission Classes
+
+A custom `permissions.py` file was created in the employees application.
+
+The following permission classes were implemented:
+
+```text
+IsAdmin
+IsHR
+IsManager
+IsEmployee
+```
+
+Each permission class checks:
+
+1. Whether the user is authenticated.
+2. Whether the user has an employee profile.
+3. Whether the employee profile contains the required role.
+
+Example permission structure:
+
+```python
+class IsAdmin(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user
+            and request.user.is_authenticated
+            and hasattr(request.user, "employee_profile")
+            and request.user.employee_profile.role == "ADMIN"
+        )
+```
+
+The same role-based permission approach was implemented for HR, Manager, and Employee roles.
+
+---
+
+# Step 4 — Protect Employee APIs
+
+The Employee APIs were protected according to the documented permission matrix.
+
+## Permission Matrix
+
+| API Operation   | ADMIN | HR         | MANAGER    | EMPLOYEE |
+| --------------- | ----- | ---------- | ---------- | -------- |
+| List Employees  | Yes   | Yes        | Yes        | Own only |
+| Create Employee | Yes   | Yes        | No         | No       |
+| Update Employee | Yes   | Yes        | Restricted | Own only |
+| Delete Employee | Yes   | Restricted | No         | No       |
+| Own Profile     | Yes   | Yes        | Yes        | Yes      |
+
+The permission rules were applied to the Employee ViewSet.
+
+Different API actions use different permission combinations.
+
+---
+
+# Step 5 — Ownership-Based Authorization
+
+The following endpoint was implemented:
+
+```text
+GET /api/v1/profile/me/
+```
+
+The endpoint retrieves the authenticated user's employee profile.
+
+The ownership rule ensures that an employee cannot access another employee's profile through the protected employee API.
+
+## Expected Behavior
+
+```text
+Employee A → Employee A profile
+        ✅ Allowed
+
+Employee A → Employee B profile
+        ❌ Denied
+```
+
+The employee queryset is restricted to the authenticated employee's own profile.
+
+---
+
+# Step 6 — Permission Testing
+
+The following test users were created for role-based authorization testing:
+
+```text
+admin_test
+hr_test
+manager_test
+employee_test
+```
+
+Each user was assigned the corresponding role.
+
+## Role Testing
+
+### ADMIN
+
+Tested:
+
+* List employees
+* Create employee
+* Update employee
+* Delete employee
+
+### HR
+
+Tested:
+
+* List employees
+* Create employee
+* Update employee
+* Delete employee restriction
+
+### MANAGER
+
+Tested:
+
+* List employees
+* Create employee restriction
+* Update employee restriction
+* Delete employee restriction
+
+### EMPLOYEE
+
+Tested:
+
+* List permitted employee information
+* Create employee restriction
+* Update restriction
+* Delete employee restriction
+* Own employee information access
+
+---
+
+# Unauthorized User Testing
+
+An unauthenticated request was tested against the protected Employee API.
+
+Expected response:
+
+```text
+Authentication credentials were not provided.
+```
+
+The protected API correctly requires authentication.
+
+---
+
+# Cross-User Authorization Testing
+
+An employee attempted to access another employee's information.
+
+Example:
+
+```text
+Employee A → Employee B
+```
+
+The request was denied because the employee queryset is restricted to the authenticated user's own profile.
+
+Expected result:
+
+```text
+Employee not found.
+```
+
+This prevents unauthorized cross-user data access.
+
+---
+
+# Debugging Exercises
+
+The following authorization vulnerabilities were considered and tested:
+
+## 1. Employee can delete employee
+
+Expected:
+
+```text
+EMPLOYEE → DELETE
+❌ Denied
+```
+
+The delete operation is restricted to the ADMIN role.
+
+## 2. Manager can access admin operation
+
+Expected:
+
+```text
+MANAGER → CREATE/ADMIN operation
+❌ Denied
+```
+
+Manager permissions do not include unrestricted employee creation.
+
+## 3. Employee can view another employee
+
+Expected:
+
+```text
+EMPLOYEE A → EMPLOYEE B
+❌ Denied
+```
+
+Ownership-based queryset filtering prevents cross-user access.
+
+---
+
+# Files and Deliverables
+
+The following deliverables were implemented:
+
+```text
+employees/
+│
+├── permissions.py
+│
+├── api/
+│   └── views.py
+│
+└── models.py
+```
+
+Additional documentation:
+
+```text
+ROLE_PERMISSIONS.md
+README.md
+```
+
+The implementation includes:
+
+* Role configuration
+* Custom permission classes
+* Permission matrix
+* Protected RBAC APIs
+* Ownership-based authorization
+* Authorization test cases
+
+---
+
+# Authorization Flow
+
+```text
+User Login
+    ↓
+Authenticated User
+    ↓
+Employee Profile
+    ↓
+User Role
+    ↓
+Permission Class
+    ↓
+API Authorization
+    ↓
+Allow / Deny Request
+```
+
+---
+
+# Security Validation
+
+The following authorization scenarios were verified:
+
+* Authenticated ADMIN access
+* Authenticated HR access
+* Authenticated MANAGER access
+* Authenticated EMPLOYEE access
+* Unauthorized user access
+* Cross-user employee access
+* Role-based create permissions
+* Role-based update permissions
+* Role-based delete permissions
+* Ownership-based access restrictions
+
+---
+
+# Git
+
+The RBAC implementation was developed using the following feature branch:
+
+```powershell
+git checkout -b feature/rbac-permissions
+```
+
+Changes can be staged using:
+
+```powershell
+git add .
+```
+
+Commit message:
+
+```powershell
+git commit -m "feat: implement role based access control"
+```
+
+---
+
+# Acceptance Criteria
+
+The SEC-003 task covers the following acceptance criteria:
+
+* Four roles implemented.
+* Permission classes implemented.
+* API permissions enforced.
+* Ownership rules implemented.
+* Cross-user access prevented.
+* All roles tested.
+* Unauthorized access tested.
+* Authorization vulnerabilities tested and fixed.
+* Required documentation created.
+* Git commit completed.
+
+---
+
+# Conclusion
+
+The SEC-003 task implements role-based access control for the Employee Management API using Django REST Framework permissions.
+
+The system differentiates access between ADMIN, HR, MANAGER, and EMPLOYEE users and applies role-based and ownership-based authorization to protected Employee APIs.
