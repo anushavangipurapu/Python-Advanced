@@ -5464,3 +5464,517 @@ The SEC-003 task covers the following acceptance criteria:
 The SEC-003 task implements role-based access control for the Employee Management API using Django REST Framework permissions.
 
 The system differentiates access between ADMIN, HR, MANAGER, and EMPLOYEE users and applies role-based and ownership-based authorization to protected Employee APIs.
+
+1/10/26
+
+# AY 19 — 01-Oct-2026
+
+# Jira Task: SEC-004 — Django & API Security Hardening
+
+## Objective
+
+Identify, review, test, and address common security weaknesses in the Django REST API.
+
+The security hardening work covered security configuration, secret management, CORS, CSRF, input validation, SQL injection awareness, sensitive data exposure, rate limiting, authorization testing, and OWASP API Security concepts.
+
+---
+
+# Step 1 — Security Configuration Review
+
+Reviewed the following Django security settings:
+
+- `DEBUG`
+- `SECRET_KEY`
+- `ALLOWED_HOSTS`
+- CORS configuration
+- CSRF configuration
+- `SESSION_COOKIE_SECURE`
+- `CSRF_COOKIE_SECURE`
+- `SECURE_SSL_REDIRECT`
+
+Reviewed the difference between development and production security configurations.
+
+Verified the project using:
+
+```powershell
+python manage.py check
+```
+
+Result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+Security configuration review completed successfully.
+
+---
+
+# Step 2 — Secret Management
+
+Reviewed sensitive configuration values including:
+
+- `SECRET_KEY`
+- Database credentials
+- JWT-related secrets
+- Email password
+- API keys
+
+Created and reviewed:
+
+```text
+.env.example
+```
+
+Example configuration:
+
+```text
+DB_NAME=employee_management
+DB_USER=employee_admin
+DB_PASSWORD=your_database_password
+DB_HOST=localhost
+DB_PORT=5432
+
+SECRET_KEY=your_secret_key
+JWT_SECRET=your_jwt_secret
+EMAIL_PASSWORD=your_email_password
+API_KEY=your_api_key
+```
+
+Verified that the actual `.env` file is ignored by Git.
+
+Verified using:
+
+```powershell
+git check-ignore .env
+```
+
+Result:
+
+```text
+.env
+```
+
+Therefore, actual environment secrets are not tracked by Git.
+
+---
+
+# Step 3 — CORS Configuration
+
+Reviewed the project's CORS configuration.
+
+Configured a specific allowed origin:
+
+```python
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
+```
+
+Verified that:
+
+```python
+CORS_ALLOW_ALL_ORIGINS = True
+```
+
+is not enabled.
+
+Reviewed why allowing all origins should not be blindly used in production.
+
+Configuration validation:
+
+```powershell
+python manage.py check
+```
+
+Result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+CORS configuration review completed.
+
+---
+
+# Step 4 — CSRF
+
+Reviewed Django CSRF protection and its importance for browser-based cookie authentication.
+
+Verified that Django CSRF middleware is enabled:
+
+```text
+django.middleware.csrf.CsrfViewMiddleware
+```
+
+Reviewed the project's JWT-based authentication approach.
+
+Identified that some legacy function-based employee views use:
+
+```python
+@csrf_exempt
+```
+
+Created:
+
+```text
+CSRF_REVIEW.md
+```
+
+The document records the CSRF configuration, authentication approach, and security considerations.
+
+CSRF review completed.
+
+---
+
+# Step 5 — Input Validation
+
+Reviewed and tested API input validation.
+
+The following cases were reviewed/tested:
+
+- Empty values
+- Invalid data types
+- Unexpected fields
+- Invalid IDs
+- Invalid dates
+- Negative salary values
+- Malformed email values
+- Required field validation
+- Duplicate employee code
+- Duplicate email
+- Invalid JSON
+
+Negative salary validation was confirmed.
+
+Example validation response:
+
+```json
+{
+    "status": "error",
+    "message": "Salary cannot be negative"
+}
+```
+
+Input validation review completed successfully.
+
+---
+
+# Step 6 — SQL Injection Awareness
+
+Demonstrated safely how Django ORM queries are parameterized.
+
+Tested a normal ORM query:
+
+```python
+Employee.objects.filter(first_name="Ravi")
+```
+
+Also tested an SQL-injection-style input as plain data:
+
+```python
+Employee.objects.filter(first_name="' OR '1'='1")
+```
+
+The ORM treated the value as data rather than executable SQL.
+
+Reviewed an unsafe raw SQL pattern:
+
+```python
+query = f"SELECT * FROM employees_employee WHERE first_name = '{user_input}'"
+```
+
+Reviewed the safer parameterized approach:
+
+```python
+Employee.objects.raw(
+    "SELECT * FROM employees_employee WHERE first_name = %s",
+    ["Ravi"]
+)
+```
+
+No real exploitable SQL injection vulnerability was introduced.
+
+SQL injection awareness and safe ORM usage were completed.
+
+---
+
+# Step 7 — Sensitive Data Exposure
+
+Reviewed API responses to ensure sensitive information such as the following is not exposed:
+
+- Passwords
+- Password hashes
+- Private tokens
+- Database credentials
+- Internal secrets
+
+Reviewed employee API responses and sensitive fields.
+
+No password, password hash, JWT secret, database password, or API secret was found in the tested API responses.
+
+Sensitive personal information such as employee contact and profile information was also reviewed for exposure and authorization requirements.
+
+Sensitive data exposure review completed.
+
+---
+
+# Step 8 — Rate Limiting
+
+Configured Django REST Framework throttling:
+
+```python
+"DEFAULT_THROTTLE_CLASSES": [
+    "rest_framework.throttling.AnonRateThrottle",
+    "rest_framework.throttling.UserRateThrottle",
+],
+```
+
+Configured rates:
+
+```python
+"DEFAULT_THROTTLE_RATES": {
+    "anon": "10/min",
+    "user": "60/min",
+},
+```
+
+Added anonymous throttling to sensitive authentication endpoints including:
+
+- Registration
+- Login
+
+Password-related endpoint review was also performed; no separate password endpoint was implemented in the current application.
+
+## Rate Limiting Test
+
+Repeated login requests were sent using an invalid password.
+
+The first 10 requests returned:
+
+```text
+400
+```
+
+After the configured limit was reached, subsequent requests returned:
+
+```text
+429
+```
+
+Example:
+
+```text
+Request 10 : 400
+Request 11 : 429
+Request 12 : 429
+```
+
+Response:
+
+```json
+{
+    "detail": "Request was throttled. Expected available in 39 seconds."
+}
+```
+
+### Result
+
+Rate limiting configuration and actual throttling behavior were successfully verified.
+
+---
+
+# Step 9 — OWASP API Security Review
+
+Reviewed the application against relevant OWASP API security concepts.
+
+## 1. Broken Object Level Authorization (BOLA)
+
+Tested access using an `EMPLOYEE` role.
+
+The employee could access their own employee record:
+
+```text
+Employee ID: 42
+```
+
+When attempting to access another employee's record:
+
+```text
+Employee ID: 1
+```
+
+the API returned:
+
+```json
+{
+    "detail": "Employee not found."
+}
+```
+
+No unauthorized employee object data was exposed during the test.
+
+### Result
+
+BOLA test passed for the tested employee-level access scenario.
+
+---
+
+## 2. Broken Authentication
+
+Tested:
+
+- API access without JWT
+- Invalid JWT
+- Valid JWT
+
+Without authentication:
+
+```json
+{
+    "detail": "Authentication credentials were not provided."
+}
+```
+
+Invalid JWT:
+
+```json
+{
+    "detail": "Given token not valid for any token type"
+}
+```
+
+Valid JWT successfully accessed the protected API.
+
+### Result
+
+Authentication protection was successfully verified.
+
+---
+
+## 3. Broken Object Property Level Authorization
+
+Reviewed employee API response fields and serializers/permissions.
+
+Sensitive authentication information such as passwords, password hashes, tokens, and database credentials was not exposed.
+
+Employee-specific fields were reviewed for authorization and necessity.
+
+---
+
+## 4. Unrestricted Resource Consumption
+
+Reviewed API throttling configuration.
+
+Anonymous requests are limited to:
+
+```text
+10 requests/minute
+```
+
+Authenticated users are limited to:
+
+```text
+60 requests/minute
+```
+
+Repeated login testing confirmed HTTP `429 Too Many Requests`.
+
+---
+
+## 5. Security Misconfiguration
+
+Reviewed:
+
+- Debug configuration
+- Secret management
+- CORS
+- CSRF
+- Security middleware
+- Throttling
+- Environment configuration
+
+A specific CORS origin is configured instead of allowing all origins.
+
+Actual environment secrets are excluded from Git.
+
+---
+
+## 6. Improper Inventory Management
+
+Reviewed the available API endpoints and authentication routes.
+
+The current API structure and authentication endpoints were reviewed as part of the security assessment.
+
+---
+
+# Intentional Security Exercises
+
+The following security scenarios were reviewed:
+
+| Security Exercise                   | Result                                   |
+| ----------------------------------- | ---------------------------------------- |
+| Unauthorized employee object access | Tested and blocked                       |
+| Sensitive field exposure            | Reviewed                                 |
+| Permissive CORS                     | Reviewed and restricted                  |
+| Missing login throttling            | Throttling implemented                   |
+| Hard-coded secrets                  | Environment-based configuration reviewed |
+
+Each exercise followed:
+
+```text
+Identify
+   ↓
+Explain Risk
+   ↓
+Fix / Configure
+   ↓
+Test
+   ↓
+Document
+```
+
+---
+
+# Documentation Created
+
+The following security documentation was created/updated:
+
+```text
+SECURITY_CHECKLIST.md
+SECURITY_FINDINGS.md
+CSRF_REVIEW.md
+OWASP_API_SECURITY_REVIEW.md
+.env.example
+```
+
+---
+
+# Final Security Testing Summary
+
+| Security Area                     | Status |
+| --------------------------------- | ------ |
+| Authentication without JWT        | PASS   |
+| Invalid JWT                       | PASS   |
+| Valid JWT                         | PASS   |
+| Own employee authorization        | PASS   |
+| BOLA / unauthorized object access | PASS   |
+| Input validation                  | PASS   |
+| SQL injection awareness           | PASS   |
+| CORS review                       | PASS   |
+| CSRF review                       | PASS   |
+| Sensitive data exposure review    | PASS   |
+| Rate limiting configuration       | PASS   |
+| Rate limiting actual test         | PASS   |
+| OWASP API Security Review         | PASS   |
+
+---
+
+# Final Outcome
+
+SEC-004 — Django & API Security Hardening was reviewed across the required security areas.
+
+The application security review covered authentication, authorization, secret management, CORS, CSRF, input validation, SQL injection awareness, sensitive data exposure, rate limiting, and OWASP API security concepts.
+
+Final security testing was completed, including successful verification of JWT authentication, employee-level object authorization, and rate limiting with HTTP `429 Too Many Requests`.
+

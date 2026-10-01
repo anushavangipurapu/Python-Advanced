@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
 from employees.models import Employee, EmployeeTransfer
@@ -30,7 +31,7 @@ class EmployeeViewSet(ModelViewSet):
         "last_name",
         "email",
         "employee_code",
-        "department",
+       "department__name",
     ]
 
     ordering_fields = [
@@ -40,20 +41,30 @@ class EmployeeViewSet(ModelViewSet):
 
     def get_permissions(self):
 
-        if self.action in ["create", "update", "partial_update"]:
+        # Create: ADMIN and HR only
+        if self.action == "create":
             permission_classes = [IsAdmin | IsHR]
 
+        # Update: ADMIN, HR, and EMPLOYEE
+        # EMPLOYEE can update only their own record
+        elif self.action in ["update", "partial_update"]:
+            permission_classes = [IsAdmin | IsHR | IsEmployee]
+
+        # Delete: ADMIN only
         elif self.action == "destroy":
             permission_classes = [IsAdmin]
 
+        # Transfer: ADMIN, HR, and MANAGER
         elif self.action == "transfer":
             permission_classes = [IsAdmin | IsHR | IsManager]
 
+        # Transfer history: all authenticated roles
         elif self.action == "transfer_history":
             permission_classes = [
                 IsAdmin | IsHR | IsManager | IsEmployee
             ]
 
+        # List, retrieve, and active: all roles
         elif self.action in ["list", "retrieve", "active"]:
             permission_classes = [
                 IsAdmin | IsHR | IsManager | IsEmployee
@@ -70,9 +81,10 @@ class EmployeeViewSet(ModelViewSet):
         ]
 
     def get_queryset(self):
+
         queryset = Employee.objects.all().order_by("id")
 
-        # Employee can access only their own Employee record.
+        # EMPLOYEE can access only their own Employee record
         if (
             self.request.user.is_authenticated
             and hasattr(self.request.user, "employee_profile")
@@ -104,6 +116,7 @@ class EmployeeViewSet(ModelViewSet):
         return queryset
 
     def retrieve(self, request, *args, **kwargs):
+
         try:
             employee = self.get_object()
         except Http404:
@@ -117,6 +130,7 @@ class EmployeeViewSet(ModelViewSet):
         return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
+
         try:
             employee = self.get_object()
         except Http404:
@@ -131,19 +145,27 @@ class EmployeeViewSet(ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def active(self, request):
-        employees = self.get_queryset().filter(
-            is_active=True
-        ).order_by("id")
+
+        employees = (
+            self.get_queryset()
+            .filter(is_active=True)
+            .order_by("id")
+        )
 
         serializer = self.get_serializer(
             employees,
-            many=True
+            many=True,
         )
 
         return Response(serializer.data)
 
-    @action(detail=True, methods=["post"], url_path="transfer")
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="transfer",
+    )
     def transfer(self, request, pk=None):
+
         to_department_id = request.data.get("to_department")
         reason = request.data.get("reason")
 
@@ -170,6 +192,7 @@ class EmployeeViewSet(ModelViewSet):
                     else None
                 ),
             )
+
         except Exception as exc:
             return Response(
                 {"detail": str(exc)},
@@ -192,9 +215,10 @@ class EmployeeViewSet(ModelViewSet):
     @action(
         detail=True,
         methods=["get"],
-        url_path="transfer-history"
+        url_path="transfer-history",
     )
     def transfer_history(self, request, pk=None):
+
         try:
             employee = self.get_object()
         except Http404:
@@ -203,13 +227,17 @@ class EmployeeViewSet(ModelViewSet):
                 status=404,
             )
 
-        history = EmployeeTransfer.objects.filter(
-            employee=employee
-        ).select_related(
-            "from_department",
-            "to_department",
-            "transferred_by"
-        ).order_by("-transferred_at")
+        history = (
+            EmployeeTransfer.objects.filter(
+                employee=employee
+            )
+            .select_related(
+                "from_department",
+                "to_department",
+                "transferred_by",
+            )
+            .order_by("-transferred_at")
+        )
 
         data = []
 
@@ -232,8 +260,6 @@ class EmployeeViewSet(ModelViewSet):
                 "transfer_history": data,
             }
         )
-        from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
 
 
 class MyProfileAPIView(APIView):
@@ -244,6 +270,7 @@ class MyProfileAPIView(APIView):
 
         try:
             employee = request.user.employee_profile
+
         except Employee.DoesNotExist:
             return Response(
                 {"detail": "Employee profile not found."},
@@ -252,4 +279,7 @@ class MyProfileAPIView(APIView):
 
         serializer = EmployeeSerializer(employee)
 
-        return Response(serializer.data)
+        return Response(
+            serializer.data,
+            status=200,
+        )
