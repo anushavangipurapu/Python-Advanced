@@ -20,7 +20,6 @@ from .serializers import EmployeeSerializer
 
 
 class EmployeeViewSet(ModelViewSet):
-
     queryset = Employee.objects.all().order_by("id")
     serializer_class = EmployeeSerializer
 
@@ -31,7 +30,7 @@ class EmployeeViewSet(ModelViewSet):
         "last_name",
         "email",
         "employee_code",
-       "department__name",
+        "department__name",
     ]
 
     ordering_fields = [
@@ -40,7 +39,6 @@ class EmployeeViewSet(ModelViewSet):
     ]
 
     def get_permissions(self):
-
         # Create: ADMIN and HR only
         if self.action == "create":
             permission_classes = [IsAdmin | IsHR]
@@ -81,7 +79,6 @@ class EmployeeViewSet(ModelViewSet):
         ]
 
     def get_queryset(self):
-
         queryset = Employee.objects.all().order_by("id")
 
         # EMPLOYEE can access only their own Employee record
@@ -116,7 +113,6 @@ class EmployeeViewSet(ModelViewSet):
         return queryset
 
     def retrieve(self, request, *args, **kwargs):
-
         try:
             employee = self.get_object()
         except Http404:
@@ -130,7 +126,6 @@ class EmployeeViewSet(ModelViewSet):
         return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
-
         try:
             employee = self.get_object()
         except Http404:
@@ -145,7 +140,6 @@ class EmployeeViewSet(ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def active(self, request):
-
         employees = (
             self.get_queryset()
             .filter(is_active=True)
@@ -165,7 +159,6 @@ class EmployeeViewSet(ModelViewSet):
         url_path="transfer",
     )
     def transfer(self, request, pk=None):
-
         to_department_id = request.data.get("to_department")
         reason = request.data.get("reason")
 
@@ -218,7 +211,6 @@ class EmployeeViewSet(ModelViewSet):
         url_path="transfer-history",
     )
     def transfer_history(self, request, pk=None):
-
         try:
             employee = self.get_object()
         except Http404:
@@ -263,14 +255,11 @@ class EmployeeViewSet(ModelViewSet):
 
 
 class MyProfileAPIView(APIView):
-
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-
         try:
             employee = request.user.employee_profile
-
         except Employee.DoesNotExist:
             return Response(
                 {"detail": "Employee profile not found."},
@@ -282,4 +271,144 @@ class MyProfileAPIView(APIView):
         return Response(
             serializer.data,
             status=200,
+        )
+
+    def patch(self, request):
+        try:
+            employee = request.user.employee_profile
+        except Employee.DoesNotExist:
+            return Response(
+                {"detail": "Employee profile not found."},
+                status=404,
+            )
+
+        serializer = EmployeeSerializer(
+            employee,
+            data=request.data,
+            partial=True,
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response(
+                serializer.data,
+                status=200,
+            )
+
+        return Response(
+            serializer.errors,
+            status=400,
+        )
+
+
+class EmployeeProfileAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            employee = Employee.objects.get(pk=pk)
+        except Employee.DoesNotExist:
+            return Response(
+                {"detail": "Employee profile not found."},
+                status=404,
+            )
+
+        user_employee = request.user.employee_profile
+        role = user_employee.role
+
+        # Employee can access only own profile
+        if (
+            role == "EMPLOYEE"
+            and employee.id != user_employee.id
+        ):
+            return Response(
+                {
+                    "detail": (
+                        "You are not authorized "
+                        "to access this profile."
+                    )
+                },
+                status=403,
+            )
+
+        # Manager can access only own profile
+        if (
+            role == "MANAGER"
+            and employee.id != user_employee.id
+        ):
+            return Response(
+                {
+                    "detail": (
+                        "You are not authorized "
+                        "to access this profile."
+                    )
+                },
+                status=403,
+            )
+
+        # HR and Admin can access employee profiles
+        serializer = EmployeeSerializer(employee)
+
+        return Response(
+            serializer.data,
+            status=200,
+        )
+
+    def patch(self, request, pk):
+        try:
+            employee = Employee.objects.get(pk=pk)
+        except Employee.DoesNotExist:
+            return Response(
+                {"detail": "Employee profile not found."},
+                status=404,
+            )
+
+        user_employee = request.user.employee_profile
+        role = user_employee.role
+
+        # Employee can update only own profile
+        if (
+            role == "EMPLOYEE"
+            and employee.id != user_employee.id
+        ):
+            return Response(
+                {
+                    "detail": (
+                        "You are not authorized "
+                        "to update this profile."
+                    )
+                },
+                status=403,
+            )
+
+        # Only Admin, HR and Employee can update profiles
+        if role not in ["ADMIN", "HR", "EMPLOYEE"]:
+            return Response(
+                {
+                    "detail": (
+                        "You are not authorized "
+                        "to update this profile."
+                    )
+                },
+                status=403,
+            )
+
+        serializer = EmployeeSerializer(
+            employee,
+            data=request.data,
+            partial=True,
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+
+            return Response(
+                serializer.data,
+                status=200,
+            )
+
+        return Response(
+            serializer.errors,
+            status=400,
         )

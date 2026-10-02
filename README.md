@@ -5978,3 +5978,615 @@ The application security review covered authentication, authorization, secret ma
 
 Final security testing was completed, including successful verification of JWT authentication, employee-level object authorization, and rate limiting with HTTP `429 Too Many Requests`.
 
+2/10/26
+
+# SEC-005 — Security Audit, Penetration-Style Testing & Code Review
+
+**Date:** 02-Oct-2026  
+**Duration:** 8+ Hours  
+**Track:** Python Django / Django REST Framework Backend  
+**Epic:** Epic 4 — Authentication, Authorization & API Security
+
+---
+
+## Objective
+
+Complete a security audit of the Employee Management API and perform penetration-style testing, authorization testing, input security testing, authentication abuse testing, error handling review, security documentation, and final code review.
+
+The objective was to verify that the authentication, authorization, object-level access control, validation, error handling, throttling, and security configurations implemented during the previous tasks work correctly and securely.
+
+---
+
+# Step 1 — Authentication Audit
+
+The authentication system was tested for the following:
+
+### 1. Registration
+
+- Tested user registration endpoint.
+- Registration completed successfully.
+- Security test user was created successfully.
+
+**Result:** PASS
+
+### 2. Login
+
+- Tested authentication with valid credentials.
+- Tested authentication with invalid credentials.
+- Invalid credentials were rejected with HTTP 401.
+
+**Result:** PASS
+
+### 3. JWT Generation
+
+- Tested JWT access token and refresh token generation.
+- Access and refresh tokens were generated successfully.
+
+**Result:** PASS
+
+### 4. JWT Refresh
+
+- Tested the refresh token endpoint.
+- A new access token was successfully generated.
+
+**Result:** PASS
+
+### 5. Token Expiration
+
+- Tested an expired access token.
+- Expired token requests were rejected.
+
+**Result:** PASS
+
+### 6. Invalid Token
+
+- Tested an invalid JWT against a protected endpoint.
+- Invalid JWT was rejected.
+
+**Result:** PASS
+
+### 7. Inactive Account
+
+- Tested authentication using an inactive account.
+- Inactive account authentication was rejected.
+
+**Result:** PASS
+
+---
+
+# Step 2 — Authorization Audit
+
+Role-based authorization was tested for:
+
+- Admin
+- HR
+- Manager
+- Employee
+
+### Admin
+
+Admin access to the employee list was tested.
+
+**Result:** HTTP 200 — PASS
+
+### HR
+
+HR access to the employee list was tested.
+
+**Result:** HTTP 200 — PASS
+
+### Manager
+
+Manager access to the employee list was tested.
+
+**Result:** HTTP 200 — PASS
+
+### Employee
+
+Employee access to the employee list was tested.
+
+Employee access was restricted to the employee's own record.
+
+**Result:** PASS
+
+---
+
+# Step 3 — Object-Level Authorization Testing
+
+Object-level authorization was tested by attempting to access another employee's data.
+
+### Employee A → Employee B
+
+An authenticated employee attempted to access another employee's profile.
+
+The request was rejected with an authorization error.
+
+**Result:** PASS
+
+### Manager A → Employee B
+
+Manager access to another employee's profile was tested.
+
+During the initial test, unauthorized access was allowed.
+
+This was identified as a security issue and the authorization logic was updated to restrict manager profile access according to the required ownership rules.
+
+The test was then repeated after the fix.
+
+**Result:** PASS after fix
+
+### HR → Employee Profile
+
+HR access to employee profiles was tested.
+
+HR was allowed to manage employee profiles according to the required role permissions.
+
+**Result:** PASS
+
+### Object-Level Authorization Fix
+
+The `EmployeeProfileAPIView` authorization logic was updated to ensure that unauthorized users cannot access restricted employee profiles.
+
+Regression testing was performed after the fix.
+
+---
+
+# Step 4 — API Input Security
+
+The API was tested with different invalid and unexpected inputs.
+
+### Missing Fields
+
+Required fields were omitted from requests.
+
+The API returned validation errors.
+
+**Result:** PASS
+
+### Invalid Data Types
+
+Invalid values and data types were supplied.
+
+The API rejected invalid input with validation errors.
+
+**Result:** PASS
+
+### Large Values
+
+A very large salary value was submitted.
+
+The API rejected the value because it exceeded the allowed validation limit.
+
+**Result:** PASS
+
+### Unexpected Fields
+
+An additional unexpected field was supplied in the request.
+
+The serializer ignored the unexpected field and accepted the request.
+
+**Result:** Finding identified — unexpected fields should be reviewed and restricted where required.
+
+### Invalid IDs
+
+Invalid employee IDs were tested.
+
+The API returned an appropriate not-found response.
+
+**Result:** PASS
+
+### Malformed JSON
+
+Malformed JSON input was tested.
+
+The API returned a JSON parsing error instead of crashing.
+
+**Result:** PASS
+
+### Invalid Query Parameters
+
+An invalid pagination parameter was supplied.
+
+The API returned an appropriate validation error.
+
+**Result:** PASS
+
+---
+
+# Step 5 — Authentication Abuse Testing
+
+Authentication abuse scenarios were tested.
+
+### Repeated Invalid Login Attempts
+
+Multiple invalid login attempts were performed.
+
+10 consecutive invalid login attempts returned HTTP 401 responses.
+
+No HTTP 429 response was observed during this specific 10-attempt test.
+
+**Result:** Rate-limit behavior requires review for login attempts.
+
+### Invalid Credentials
+
+Invalid username/password combinations were tested.
+
+Authentication was rejected.
+
+**Result:** PASS
+
+### Expired Token
+
+An expired JWT was used against a protected endpoint.
+
+The request was rejected.
+
+**Result:** PASS
+
+### Invalid Refresh Token
+
+An invalid refresh token was tested.
+
+The refresh request was rejected.
+
+**Result:** PASS
+
+### Modified JWT
+
+A modified/tampered JWT was tested.
+
+The token was rejected.
+
+**Result:** PASS
+
+### Missing Authorization Header
+
+A protected endpoint was accessed without an Authorization header.
+
+The request was rejected because authentication credentials were not provided.
+
+**Result:** PASS
+
+---
+
+# Step 6 — Error Handling Audit
+
+Error responses were reviewed to ensure that sensitive implementation details are not exposed.
+
+### Protected API Errors
+
+Invalid employee requests were tested.
+
+The API returned controlled error responses without exposing:
+
+- Database passwords
+- SQL queries
+- Secret keys
+- Sensitive implementation details
+
+**Result:** PASS
+
+### Invalid URL / 404 Error
+
+Invalid URLs were tested.
+
+The development server returned Django DEBUG information including URL patterns and internal route information.
+
+This identified a production configuration issue.
+
+### Finding
+
+`DEBUG=True` must not be enabled in production.
+
+**Result:** Finding identified
+
+### Production Security Requirement
+
+Production configuration must use:
+
+```python
+DEBUG = False
+```
+
+Production `ALLOWED_HOSTS` should also be configured with the application's valid hostnames.
+
+---
+
+# Step 7 — Security Test Report
+
+A security audit report was created:
+
+```text
+SECURITY_AUDIT_REPORT.md
+```
+
+The report contains the required security finding structure:
+
+```text
+Finding ID:
+Severity:
+Affected Endpoint:
+Issue:
+Steps to Reproduce:
+Expected Behavior:
+Actual Behavior:
+Root Cause:
+Fix:
+Regression Test:
+Status:
+```
+
+The identified security findings were documented along with their fixes and regression-test status.
+
+---
+
+# Step 8 — Final Code Review
+
+The following areas were reviewed:
+
+### models.py
+
+Reviewed:
+
+- Employee model
+- User relationship
+- Role configuration
+- Employee profile relationship
+- Field definitions
+
+### serializers.py
+
+Reviewed:
+
+- Input validation
+- Required fields
+- Data validation
+- Unexpected input handling
+
+### views.py
+
+Reviewed:
+
+- Authentication requirements
+- CRUD operations
+- Profile APIs
+- Object-level authorization
+- Role-based access control
+- Error handling
+
+### permissions.py
+
+Reviewed:
+
+- Admin permissions
+- HR permissions
+- Manager permissions
+- Employee permissions
+- Authentication checks
+
+### Authentication
+
+Reviewed:
+
+- Registration
+- Login
+- JWT access token
+- JWT refresh token
+- Invalid token handling
+- Expired token handling
+- Inactive account handling
+
+### settings.py
+
+Reviewed:
+
+- DEBUG configuration
+- SECRET_KEY management
+- CORS
+- CSRF
+- JWT configuration
+- DRF throttling
+- Authentication settings
+- Permission defaults
+
+### urls.py
+
+Reviewed:
+
+- Authentication routes
+- Employee API routes
+- Profile routes
+- Invalid URL handling
+
+### Git History
+
+Reviewed the development branches and commits related to:
+
+- Authentication
+- JWT authentication
+- RBAC and permissions
+- Security hardening
+- Security audit
+
+---
+
+# Final Practical Evaluation
+
+The Secure Employee Profile API requirements were tested.
+
+## Required Endpoint 1
+
+```text
+GET /api/v1/profile/me/
+```
+
+Authenticated employees were able to retrieve their own profile.
+
+**Result:** PASS
+
+## Required Endpoint 2
+
+```text
+PATCH /api/v1/profile/me/
+```
+
+Authenticated employees were able to update their own profile.
+
+**Result:** PASS
+
+## Required Endpoint 3
+
+```text
+GET /api/v1/employees/<id>/profile/
+```
+
+Profile access was tested using different roles and ownership scenarios.
+
+**Result:** PASS after authorization fix
+
+## Required Endpoint 4
+
+```text
+PATCH /api/v1/employees/<id>/profile/
+```
+
+Profile update authorization was tested based on role and ownership.
+
+**Result:** PASS
+
+---
+
+# Minimum Security Tests
+
+The following security scenarios were tested:
+
+| Test | Result |
+|---|---|
+| Anonymous user | PASS |
+| Authenticated employee | PASS |
+| Employee accessing own profile | PASS |
+| Employee accessing another profile | PASS |
+| HR access | PASS |
+| Admin access | PASS |
+| Manager object-level access | Fixed and PASS |
+| Invalid JWT | PASS |
+| Expired JWT | PASS |
+| Invalid input | PASS |
+| Missing fields | PASS |
+| Unauthorized update | PASS |
+
+---
+
+# EPIC 4 Final Deliverable
+
+The following Epic 4 security requirements were reviewed:
+
+- User registration
+- Secure password handling
+- Login
+- JWT access token
+- JWT refresh token
+- Protected APIs
+- Role-based access control
+- Object-level authorization
+- CORS
+- CSRF
+- Input validation
+- API throttling
+- Secret management
+- Sensitive-data protection
+- OWASP API security review
+- Security testing
+- Debugging
+- Code review
+- Git branches and commits
+- Security audit report
+
+---
+
+# Final Git Release
+
+The final release process requires merging the completed feature branches into `main`.
+
+```powershell
+git checkout main
+
+git merge feature/user-authentication
+git merge feature/jwt-authentication
+git merge feature/rbac-permissions
+git merge feature/security-hardening
+
+git commit -m "release: complete authentication and api security epic"
+
+git push origin main
+```
+
+Before performing the merge, the current Git status and available branches should be verified.
+
+```powershell
+git status
+git branch
+```
+
+---
+
+# EPIC 4 Acceptance Criteria
+
+The following areas were completed and reviewed:
+
+1. Authentication implemented and tested.
+2. JWT authentication implemented and tested.
+3. Role-based permissions implemented.
+4. Object-level authorization implemented.
+5. Protected employee APIs tested.
+6. Input validation implemented and tested.
+7. CORS and CSRF security reviewed.
+8. Secret management reviewed.
+9. API throttling reviewed and tested.
+10. Sensitive data exposure reviewed.
+11. OWASP API security risks reviewed.
+12. Authentication abuse scenarios tested.
+13. Error handling security reviewed.
+14. Security audit report created.
+15. Final code review completed.
+
+---
+
+# Week Completion Flow
+
+```text
+28-Sep-2026
+Authentication
+        ↓
+29-Sep-2026
+JWT Authentication
+        ↓
+30-Sep-2026
+RBAC & Permissions
+        ↓
+01-Oct-2026
+Security Hardening
+        ↓
+02-Oct-2026
+Security Audit + Penetration-Style Testing + Code Review
+        ↓
+EPIC 4 COMPLETE
+```
+
+---
+
+# Final Task Summary
+
+SEC-005 completed the final security audit and evaluation of the Employee Management API.
+
+Authentication, authorization, object-level access control, API input validation, authentication abuse scenarios, error handling, security configuration, sensitive-data protection, and final code quality were reviewed.
+
+Security issues identified during testing were documented and the required authorization issue was fixed and regression tested.
+
+The security audit documentation was created in:
+
+```text
+SECURITY_AUDIT_REPORT.md
+```
+
+The final project is ready for the Git release and Epic 4 completion process after verifying the branch and merge state.

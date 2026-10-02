@@ -1,6 +1,10 @@
 from django.urls import path
 
-from .views import EmployeeViewSet, MyProfileAPIView
+from .views import (
+    EmployeeViewSet,
+    MyProfileAPIView,
+    EmployeeProfileAPIView,
+)
 
 
 employee_list = EmployeeViewSet.as_view({
@@ -34,5 +38,11 @@ urlpatterns = [
         "profile/me/",
         MyProfileAPIView.as_view(),
         name="my-profile",
+    ),
+
+    path(
+        "employees/<int:pk>/profile/",
+        EmployeeProfileAPIView.as_view(),
+        name="employee-profile",
     ),
 ]
