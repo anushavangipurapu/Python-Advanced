@@ -1,5 +1,6 @@
 from django.urls import path
 
+from .health import health_check
 from .views import (
     EmployeeViewSet,
     MyProfileAPIView,
@@ -12,7 +13,6 @@ employee_list = EmployeeViewSet.as_view({
     "post": "create",
 })
 
-
 employee_detail = EmployeeViewSet.as_view({
     "get": "retrieve",
     "put": "update",
@@ -22,6 +22,12 @@ employee_detail = EmployeeViewSet.as_view({
 
 
 urlpatterns = [
+    path(
+        "health/",
+        health_check,
+        name="health",
+    ),
+
     path(
         "employees/",
         employee_list,

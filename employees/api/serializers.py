@@ -33,6 +33,24 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def validate(self, attrs):
+        allowed_fields = set(self.fields.keys())
+        received_fields = set(self.initial_data.keys())
+
+        unexpected_fields = received_fields - allowed_fields
+
+        if unexpected_fields:
+            raise serializers.ValidationError(
+                {
+                    "unexpected_fields": (
+                        f"Unexpected fields are not allowed: "
+                        f"{sorted(unexpected_fields)}"
+                    )
+                }
+            )
+
+        return attrs
+
     def validate_employee_code(self, value):
         if not value.startswith("EMP"):
             raise serializers.ValidationError(

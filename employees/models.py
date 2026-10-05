@@ -45,13 +45,13 @@ class Employee(models.Model):
     department = models.ForeignKey(
         Department,
         on_delete=models.PROTECT,
-        related_name="employees"
+        related_name="employees",
     )
 
     projects = models.ManyToManyField(
         "Project",
         related_name="employees",
-        blank=True
+        blank=True,
     )
 
     designation = models.CharField(max_length=100)
@@ -69,7 +69,7 @@ class EmployeeProfile(models.Model):
     employee = models.OneToOneField(
         Employee,
         on_delete=models.CASCADE,
-        related_name="profile"
+        related_name="profile",
     )
 
     date_of_birth = models.DateField()
@@ -80,7 +80,7 @@ class EmployeeProfile(models.Model):
     profile_image = models.ImageField(
         upload_to="employee_profiles/",
         blank=True,
-        null=True
+        null=True,
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -152,4 +152,44 @@ class EmployeeTransfer(models.Model):
             f"{self.employee} - "
             f"{self.from_department} to "
             f"{self.to_department}"
+        )
+
+
+class EmployeeAuditLog(models.Model):
+    ACTION_CHOICES = [
+        ("CREATE", "Create"),
+        ("UPDATE", "Update"),
+    ]
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="audit_logs",
+    )
+
+    action = models.CharField(
+        max_length=20,
+        choices=ACTION_CHOICES,
+    )
+
+    changed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="employee_audit_logs",
+    )
+
+    changes = models.JSONField(
+        default=dict,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return (
+            f"{self.employee.employee_code} - "
+            f"{self.action} - "
+            f"{self.created_at}"
         )

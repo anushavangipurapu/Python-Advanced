@@ -6590,3 +6590,266 @@ SECURITY_AUDIT_REPORT.md
 ```
 
 The final project is ready for the Git release and Epic 4 completion process after verifying the branch and merge state.
+
+5/10/26
+
+# ADV-001 — Middleware & Signals
+
+**Date:** 05-Oct-2026  
+**Jira Task:** ADV-001  
+**Project:** Employee Management Backend  
+**Framework:** Django + Django REST Framework  
+**Status:** Completed
+
+---
+
+## 1. Objective
+
+Implemented Django Middleware and Signals for request tracing, request/response logging, and employee audit logging.
+
+---
+
+## 2. Request Logging Middleware
+
+Created:
+
+```text
+employees/middleware.py
+```
+
+The middleware logs the following information for each request:
+
+- HTTP method
+- Request path
+- User
+- HTTP status
+- Execution time
+- Unique Request ID
+
+A unique Request ID is generated for every request and returned in the response header:
+
+```text
+X-Request-ID
+```
+
+---
+
+## 3. Anonymous and Authenticated Requests
+
+The middleware supports both anonymous and authenticated requests.
+
+Anonymous requests are logged as:
+
+```text
+user=anonymous
+```
+
+Authenticated requests are logged using the authenticated username.
+
+---
+
+## 4. Request Execution Time
+
+The middleware measures request execution time using `time.perf_counter()`.
+
+Example:
+
+```text
+execution_time=0.0070s
+```
+
+---
+
+## 5. Logging Levels
+
+Logging configuration was added to `settings.py`.
+
+The following logging levels were implemented:
+
+- **INFO** — successful requests
+- **WARNING** — client errors such as HTTP 400/404
+- **ERROR** — server errors and exceptions
+
+### INFO Test
+
+Health API:
+
+```text
+GET /api/v1/health/
+```
+
+Result:
+
+```text
+HTTP 200 OK
+```
+
+INFO log was successfully generated.
+
+### WARNING Test
+
+Invalid endpoint:
+
+```text
+GET /api/v1/does-not-exist/
+```
+
+Result:
+
+```text
+HTTP 404 Not Found
+```
+
+WARNING log was successfully generated.
+
+### ERROR Test
+
+ERROR logging was verified successfully using the employees logger.
+
+---
+
+## 6. Employee Audit Model
+
+Created `EmployeeAuditLog` model to record important employee changes.
+
+The audit model records:
+
+- Employee
+- Action
+- Changed user
+- Change information
+- Created timestamp
+
+Supported actions:
+
+```text
+CREATE
+UPDATE
+```
+
+Migration was created and applied successfully.
+
+---
+
+## 7. Employee Audit Signals
+
+Created:
+
+```text
+employees/signals.py
+```
+
+Implemented Django `post_save` signal for the Employee model.
+
+The signal creates an audit record when:
+
+- An employee is created
+- An employee is updated
+
+Example:
+
+```text
+Employee audit created | action=CREATE
+Employee audit created | action=UPDATE
+```
+
+---
+
+## 8. Signal Registration
+
+Signals were registered through:
+
+```text
+employees/apps.py
+```
+
+using the `ready()` method.
+
+Signal registration was intentionally broken and tested during debugging.
+
+The issue was identified and the correct signal import was restored.
+
+---
+
+## 9. Signal Exception Handling
+
+Exception handling was added to the employee audit signal.
+
+The signal:
+
+- Logs the exception using `logger.exception()`
+- Re-raises the exception
+- Does not silently ignore audit failures
+
+---
+
+## 10. Testing Completed
+
+The following scenarios were tested successfully:
+
+- Health API HTTP 200
+- Invalid URL HTTP 404
+- Anonymous request logging
+- Authenticated request logging
+- Unique Request IDs
+- Request execution time logging
+- Employee CREATE audit
+- Employee UPDATE audit
+- Audit record persistence
+- Signal registration
+- Signal import debugging
+- Signal registration debugging
+- Signal exception handling
+- INFO logging
+- WARNING logging
+- ERROR logging
+
+---
+
+## 11. Security Verification
+
+The middleware does not log sensitive information such as:
+
+- Passwords
+- JWT tokens
+- Authorization headers
+- Request bodies
+
+Only required request and response information is logged.
+
+---
+
+## 12. Validation
+
+Django system check was executed successfully:
+
+```powershell
+python manage.py check
+```
+
+Result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+---
+
+## 13. Final Result
+
+**ADV-001 — Middleware & Signals completed successfully.**
+
+Implemented and verified:
+
+- Request tracing
+- Correlation/Request IDs
+- Request/response logging
+- Execution-time logging
+- Anonymous and authenticated request handling
+- Employee audit model
+- Employee CREATE/UPDATE audit signals
+- Signal registration
+- Signal exception handling
+- INFO/WARNING/ERROR logging
+- Security logging verification
+- Debugging and validation

@@ -1,6 +1,6 @@
 from django.http import Http404
 
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
