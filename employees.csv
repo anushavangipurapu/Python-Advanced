@@ -1,0 +1,38 @@
+employee_code,first_name,last_name,email,phone,department,designation,salary,joining_date,role,is_active
+EMP003,Employee3,Test,employee3@example.com,9876540003,Frontend,Python Developer,43000.00,2025-01-01,EMPLOYEE,False
+EMP009,Employee9,Test,employee9@example.com,9876540009,Frontend,Python Developer,49000.00,2025-01-01,EMPLOYEE,False
+EMP015,Employee15,Test,employee15@example.com,9876540015,Frontend,Python Developer,55000.00,2025-01-01,EMPLOYEE,False
+EMP021,Employee21,Test,employee21@example.com,9876540021,Frontend,Python Developer,61000.00,2025-01-01,EMPLOYEE,False
+EMP027,Employee27,Test,employee27@example.com,9876540027,Frontend,Python Developer,67000.00,2025-01-01,EMPLOYEE,False
+EMP018,Employee18,Test,employee18@example.com,9876540018,Backend,Python Developer,63800.00,2025-01-01,EMPLOYEE,False
+EMP024,Employee24,Test,employee24@example.com,9876540024,Backend,Python Developer,70400.00,2025-01-01,EMPLOYEE,False
+EMP012,Employee12,Test,employee12@example.com,9876540012,Backend,Python Developer,57200.00,2025-01-01,EMPLOYEE,False
+EMP006,Employee6,Test,employee6@example.com,9876540006,Backend,Python Developer,50600.00,2025-01-01,EMPLOYEE,False
+EMP1002,HRCreated,Employee,hrcreated1001@example.com,9876543288,Backend,Senior HR Developer,68000.00,2026-09-30,EMPLOYEE,True
+ADM001,Admin,Test,admin_test@example.com,9876543210,HR,Administrator,80000.00,2026-09-30,ADMIN,True
+HR001,HR,Test,hr_test@example.com,9876543211,HR,HR Executive,70000.00,2026-09-30,HR,True
+MGR001,Manager,Test,manager_test@example.com,9876543212,HR,Manager,75000.00,2026-09-30,MANAGER,True
+EMP999,Security,Test,security999@example.com,9876543210,HR,Tester,50000.00,2026-10-02,EMPLOYEE,True
+EMP1004,Employee,Test,employee_test@example.com,9876543219,HR,Junior Software Engineer,60000.00,2026-09-30,EMPLOYEE,True
+AUDIT001,Audit,Test,audit001@example.com,9999999999,Backend,Senior Developer,62000.00,2026-10-05,EMPLOYEE,True
+EMP005,Employee5,Test,employee5@example.com,9876540005,Frontend,Python Developer,45000.00,2025-01-01,EMPLOYEE,False
+EMP007,Employee7,Test,employee7@example.com,9876540007,Frontend,Python Developer,47000.00,2025-01-01,EMPLOYEE,False
+EMP011,Employee11,Test,employee11@example.com,9876540011,Frontend,Python Developer,51000.00,2025-01-01,EMPLOYEE,False
+EMP013,Employee13,Test,employee13@example.com,9876540013,Frontend,Python Developer,53000.00,2025-01-01,EMPLOYEE,False
+EMP017,Employee17,Test,employee17@example.com,9876540017,Frontend,Python Developer,57000.00,2025-01-01,EMPLOYEE,False
+EMP019,Employee19,Test,employee19@example.com,9876540019,Frontend,Python Developer,59000.00,2025-01-01,EMPLOYEE,False
+EMP023,Employee23,Test,employee23@example.com,9876540023,Frontend,Python Developer,63000.00,2025-01-01,EMPLOYEE,False
+EMP025,Employee25,Test,employee25@example.com,9876540025,Frontend,Python Developer,65000.00,2025-01-01,EMPLOYEE,False
+EMP029,Employee29,Test,employee29@example.com,9876540029,Frontend,Python Developer,69000.00,2025-01-01,EMPLOYEE,False
+EMP010,Employee10,Test,employee10@example.com,9876540010,Backend,Python Developer,55000.00,2025-01-01,EMPLOYEE,False
+EMP028,Employee28,Test,employee28@example.com,9876540028,Backend,Python Developer,74800.00,2025-01-01,EMPLOYEE,False
+EMP020,Employee20,Test,employee20@example.com,9876540020,Backend,Python Developer,66000.00,2025-01-01,EMPLOYEE,False
+EMP002,Employee2,Test,employee2@example.com,9876540002,Backend,Python Developer,46200.00,2025-01-01,EMPLOYEE,False
+EMP016,Employee16,Test,employee16@example.com,9876540016,Backend,Python Developer,61600.00,2025-01-01,EMPLOYEE,False
+EMP008,Employee8,Test,employee8@example.com,9876540008,Backend,Python Developer,52800.00,2025-01-01,EMPLOYEE,False
+TEST001,Test,Employee,test001@example.com,9876543210,Backend,Python Developer,55000.00,2025-01-01,EMPLOYEE,False
+EMP004,Employee4,Test,employee4@example.com,9876540004,Backend,Python Developer,48400.00,2025-01-01,EMPLOYEE,False
+EMP014,Employee14,Test,employee14@example.com,9876540014,Backend,Python Developer,59400.00,2025-01-01,EMPLOYEE,False
+EMP026,Employee26,Test,employee26@example.com,9876540026,Backend,Python Developer,72600.00,2025-01-01,EMPLOYEE,False
+EMP022,Employee22,Test,employee22@example.com,9876540022,Backend,Python Developer,68200.00,2025-01-01,EMPLOYEE,False
+EMP001,Employee1,Test,employee1@example.com,9876540001,Backend,Python Developer,41000.00,2025-01-01,EMPLOYEE,False

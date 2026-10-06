@@ -1,0 +1,2 @@
+employee_code,first_name,last_name,email,phone,department,designation,salary,joining_date,role,is_active
+TEST001,Test,Employee,test001@example.com,9876543212,IT,Tester,invalid_salary,2026-01-01,EMPLOYEE,true

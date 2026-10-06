@@ -1,0 +1,2 @@
+employee_code,first_name,last_name,email,phone,department,wrong_designation,salary,joining_date,role,is_active
+WRONG002,Wrong,Mapping,wrong002@example.com,9876543216,Backend,Tester,50000,2026-01-01,EMPLOYEE,true

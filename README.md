@@ -6853,3 +6853,476 @@ Implemented and verified:
 - INFO/WARNING/ERROR logging
 - Security logging verification
 - Debugging and validation
+
+06/10/26
+
+# ADV-002 — Custom Management Commands & File Handling
+
+**Date:** 06-Oct-2026  
+**Project:** Employee Management Backend  
+**Framework:** Django + Django REST Framework  
+**Task:** ADV-002 — Custom Management Commands & File Handling  
+**Status:** Completed
+
+---
+
+## 1. Objective
+
+The objective of this task was to build reusable Django management commands and robust CSV import/export workflows for employee data.
+
+The implementation focused on:
+
+- Custom Django management commands
+- Repeat-safe employee seeding
+- Employee deactivation based on a defined rule
+- CSV export
+- CSV import
+- Reusable CSV processing service
+- CSV validation
+- Duplicate handling
+- Error reporting
+- Transaction handling
+- Testing and debugging
+
+---
+
+## 2. Management Commands Structure
+
+Created the Django management command structure:
+
+```text
+employees/
+└── management/
+    ├── __init__.py
+    └── commands/
+        ├── __init__.py
+        ├── seed_employees.py
+        ├── deactivate_old_employees.py
+        ├── export_employees.py
+        └── import_employees.py
+```
+
+---
+
+## 3. Seed Employees Command
+
+Implemented:
+
+```text
+python manage.py seed_employees
+```
+
+The command creates sample employee records using an active department.
+
+The command uses `get_or_create()` with the unique employee code to prevent duplicate employee creation.
+
+### Repeat-Safe Testing
+
+The command was executed multiple times.
+
+Result:
+
+```text
+Created: 0
+Skipped: 2
+```
+
+This confirmed that existing employees are skipped instead of being duplicated.
+
+**Result:** PASS
+
+---
+
+## 4. Deactivate Old Employees Command
+
+Implemented:
+
+```text
+python manage.py deactivate_old_employees
+```
+
+### Rule
+
+Employees who:
+
+- are currently active, and
+- have a joining date older than one year
+
+are automatically deactivated.
+
+Testing result:
+
+```text
+Deactivated 21 old employee(s).
+```
+
+**Result:** PASS
+
+---
+
+## 5. Employee CSV Export
+
+Implemented:
+
+```text
+python manage.py export_employees --output employees.csv
+```
+
+The command exports employee information into CSV format.
+
+The exported CSV includes:
+
+```text
+employee_code
+first_name
+last_name
+email
+phone
+department
+designation
+salary
+joining_date
+role
+is_active
+```
+
+The implementation uses `select_related("department")` to efficiently retrieve department information.
+
+**Result:** PASS
+
+---
+
+## 6. Employee CSV Import
+
+Implemented:
+
+```text
+python manage.py import_employees <csv_file>
+```
+
+Example:
+
+```text
+python manage.py import_employees employees.csv
+```
+
+The command uses a reusable service:
+
+```text
+EmployeeCSVImportService
+```
+
+The command is responsible for CLI argument handling while the service contains the CSV processing and validation logic.
+
+---
+
+## 7. CSV Validation
+
+The import service validates required CSV columns.
+
+Required columns:
+
+```text
+employee_code
+first_name
+last_name
+email
+phone
+department
+designation
+salary
+joining_date
+role
+is_active
+```
+
+Missing columns are rejected with an appropriate error message.
+
+Example:
+
+```text
+Missing required columns: department, designation, email, is_active,
+joining_date, phone, role, salary
+```
+
+**Result:** PASS
+
+---
+
+## 8. Duplicate Handling
+
+Duplicate employee codes and duplicate email addresses are checked before creating employees.
+
+Duplicate records are skipped instead of creating duplicate database records.
+
+Large CSV testing was performed using 37 existing employee records.
+
+Result:
+
+```text
+Created: 0
+Skipped: 37
+Failed: 0
+```
+
+**Result:** PASS
+
+---
+
+## 9. Invalid Data Handling
+
+The import service validates employee data before saving.
+
+### Invalid Salary
+
+Invalid salary input was rejected.
+
+```text
+Failed: 1
+```
+
+### Invalid Email
+
+Invalid email input was rejected using Django model validation.
+
+Example:
+
+```text
+Enter a valid email address.
+```
+
+### Malformed Row
+
+Malformed CSV rows are detected when required values are missing.
+
+Example:
+
+```text
+Row 2: ['Missing values: joining_date, role, is_active']
+```
+
+**Result:** PASS
+
+---
+
+## 10. Empty CSV Handling
+
+An empty CSV file was tested.
+
+Result:
+
+```text
+CSV file is empty.
+```
+
+The import was rejected safely.
+
+**Result:** PASS
+
+---
+
+## 11. Invalid Department Handling
+
+An intentionally invalid department was tested.
+
+Example:
+
+```text
+Department 'UnknownDepartment' not found.
+```
+
+Result:
+
+```text
+Created: 0
+Skipped: 0
+Failed: 1
+```
+
+No invalid employee record was created.
+
+**Result:** PASS
+
+---
+
+## 12. Wrong Column Mapping
+
+A CSV with an incorrect required column name was tested.
+
+The `designation` column was replaced with `wrong_designation`.
+
+The import correctly rejected the file:
+
+```text
+Missing required columns: designation
+```
+
+**Result:** PASS
+
+---
+
+## 13. Invalid Command Arguments
+
+The import command was executed without the required CSV file argument.
+
+Command:
+
+```text
+python manage.py import_employees
+```
+
+Django correctly returned:
+
+```text
+error: the following arguments are required: file_path
+```
+
+**Result:** PASS
+
+---
+
+## 14. Transaction Behavior
+
+Transaction behavior was tested using a CSV containing:
+
+- one valid employee
+- one employee with an invalid department
+
+Result:
+
+```text
+Created: 1
+Failed: 1
+```
+
+The invalid row was reported while the valid row was imported.
+
+The current implementation supports **row-level error reporting and partial successful imports**.
+
+The transaction wrapper protects database operations when unhandled exceptions occur, while expected row-level validation errors are caught and reported so that valid rows can continue processing.
+
+---
+
+## 15. Import Result Reporting
+
+The import command reports three important results:
+
+```text
+Created
+Skipped
+Failed
+```
+
+Example:
+
+```text
+Import completed.
+Created: 0
+Skipped: 37
+Failed: 0
+```
+
+For failed rows, detailed row-level error information is displayed.
+
+---
+
+## 16. Testing Summary
+
+| Test Case | Result |
+|---|---|
+| Management command structure | PASS |
+| Employee seeding | PASS |
+| Repeat-safe seeding | PASS |
+| Deactivate old employees | PASS |
+| CSV export | PASS |
+| CSV import | PASS |
+| Empty CSV | PASS |
+| Missing CSV headers | PASS |
+| Duplicate records | PASS |
+| Invalid salary | PASS |
+| Invalid email | PASS |
+| Malformed CSV row | PASS |
+| Large CSV import | PASS |
+| Invalid department | PASS |
+| Wrong column mapping | PASS |
+| Invalid command arguments | PASS |
+| Transaction behavior | PASS |
+
+---
+
+## 17. Validation and Code Quality
+
+The Django project was verified using:
+
+```text
+python manage.py check
+```
+
+Result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+The CSV processing logic was kept separate from the management command CLI logic using:
+
+```text
+EmployeeCSVImportService
+```
+
+This improves code reuse, maintainability, and testability.
+
+---
+
+## 18. Files Implemented
+
+```text
+employees/management/__init__.py
+employees/management/commands/__init__.py
+employees/management/commands/seed_employees.py
+employees/management/commands/deactivate_old_employees.py
+employees/management/commands/export_employees.py
+employees/management/commands/import_employees.py
+employees/services.py
+```
+
+Sample/test CSV files used during validation included:
+
+```text
+employees.csv
+empty.csv
+missing_headers.csv
+invalid_salary.csv
+invalid_email.csv
+malformed.csv
+bad_department.csv
+wrong_columns.csv
+transaction_failure.csv
+```
+
+---
+
+## 19. Final Result
+
+The ADV-002 task was completed successfully.
+
+The Employee Management Backend now supports:
+
+- Reusable Django management commands
+- Repeat-safe employee seeding
+- Automated employee deactivation
+- Employee CSV export
+- Employee CSV import
+- Reusable CSV processing service
+- Required-column validation
+- Duplicate detection
+- Invalid data validation
+- Malformed row handling
+- Detailed error reporting
+- Large CSV processing
+- Transaction-aware database operations
+- CLI argument validation
+
+### Final Status
+
+**ADV-002 — Custom Management Commands & File Handling — Completed**

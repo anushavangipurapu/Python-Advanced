@@ -1,0 +1,2 @@
+employee_code,first_name,last_name,email,phone,department,designation,salary,joining_date,role,is_active
+BAD003,Bad,Department,bad003@example.com,9876543214,UnknownDepartment,Tester,50000,2026-01-01,EMPLOYEE,true

@@ -1,0 +1,3 @@
+employee_code,first_name,last_name,email,phone,department,designation,salary,joining_date,role,is_active
+TXN001,Transaction,Test,txn001@example.com,9876543217,Backend,Tester,50000,2026-01-01,EMPLOYEE,true
+TXN002,Transaction,Fail,txn002@example.com,9876543218,InvalidDepartment,Tester,55000,2026-01-01,EMPLOYEE,true
