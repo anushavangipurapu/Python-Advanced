@@ -1,20 +1,26 @@
-from django.urls import path
+from django.contrib import admin
+from django.urls import include, path
 
-from .views import (
-    health_check,
-    employee_list,
-    employee_detail,
-    employee_details,
-    invalid_redirect,
-)
+from employees.api.views import MyProfileAPIView
 
 
 urlpatterns = [
-    path("health/", health_check, name="health"),
-    path("employees/", employee_list, name="employee-list"),
-    path("employees/<int:id>/", employee_detail, name="employee-detail"),
-    path("employees/details/", employee_details, name="employee-details"),
+    path("api/v1/reports/", include("reports.urls")),
+    
 
-    # Debugging Exercise - Broken URL
-    path("invalid-redirect/", invalid_redirect, name="invalid-redirect-broken"),
+    path(
+        "api/v1/",
+        include("employees.api.urls"),
+    ),
+
+    path(
+        "api/v1/profile/me/",
+        MyProfileAPIView.as_view(),
+        name="my-profile",
+    ),
+
+    path(
+        "api/v1/auth/",
+        include("accounts.urls"),
+    ),
 ]

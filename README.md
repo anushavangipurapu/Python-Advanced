@@ -7326,3 +7326,593 @@ The Employee Management Backend now supports:
 ### Final Status
 
 **ADV-002 — Custom Management Commands & File Handling — Completed**
+
+07/10/26
+
+# ADV-003 — Email & Notification Service
+
+**Date:** 07-Oct-2026  
+**Project:** Employee Management Backend  
+**Framework:** Django + Django REST Framework  
+**Task:** ADV-003 — Email & Notification Service  
+**Status:** Completed
+
+---
+
+## 1. Objective
+
+The objective of this task was to implement a reusable Email and Notification Service for the Employee Management Backend.
+
+The service supports database-backed notifications, welcome email delivery, reusable email templates, development email configuration, notification APIs, and failed email tracking.
+
+---
+
+# 2. Tasks Completed
+
+## 2.1 Notification Model
+
+Created a `Notification` model to store employee notification details.
+
+The model includes:
+
+- Employee reference
+- Notification type
+- Subject
+- Message
+- Recipient email
+- Read/unread status
+- Email sent status
+- Email error details
+- Created timestamp
+- Read timestamp
+
+Example fields:
+
+```text
+employee
+notification_type
+subject
+message
+recipient_email
+is_read
+email_sent
+email_error
+created_at
+read_at
+```
+
+Migration was created and applied successfully.
+
+Migration:
+
+```text
+employees/migrations/0015_notification.py
+```
+
+---
+
+## 2.2 Notification Service Layer
+
+Implemented a reusable notification service in:
+
+```text
+employees/services.py
+```
+
+The service is responsible for:
+
+- Creating notification records
+- Validating recipient email addresses
+- Rendering email templates
+- Sending emails
+- Updating email delivery status
+- Recording email failures
+- Preventing duplicate successful welcome notifications
+
+Email logic was kept separate from serializers and ViewSets.
+
+---
+
+## 2.3 Welcome Email Workflow
+
+Implemented the employee welcome email workflow.
+
+The workflow:
+
+```text
+Employee
+   ↓
+Notification Service
+   ↓
+Create Notification
+   ↓
+Validate Recipient Email
+   ↓
+Render Email Template
+   ↓
+Send Email
+   ↓
+Update email_sent
+```
+
+If email sending fails, the notification is still stored and the error is recorded.
+
+---
+
+## 2.4 Reusable Email Template
+
+Created the reusable welcome email template:
+
+```text
+employees/templates/emails/welcome_email.html
+```
+
+The template contains employee-specific information such as:
+
+- Employee name
+- Employee code
+- Welcome message
+
+The template is rendered using Django's template system.
+
+---
+
+## 2.5 Environment-Based Email Configuration
+
+Configured email settings using environment variables.
+
+### Django Settings
+
+```python
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+)
+
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL",
+    "noreply@example.com",
+)
+```
+
+### `.env`
+
+```env
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+DEFAULT_FROM_EMAIL=noreply@example.com
+```
+
+This keeps email configuration outside the application code.
+
+---
+
+# 3. Development Email Backend
+
+Configured Django's console email backend for development:
+
+```text
+django.core.mail.backends.console.EmailBackend
+```
+
+This prevents accidental real email delivery during development and testing.
+
+Emails are displayed in the terminal instead.
+
+---
+
+# 4. Notification APIs
+
+Implemented notification APIs.
+
+## List Notifications
+
+```http
+GET /api/v1/notifications/
+```
+
+Returns notifications associated with the authenticated employee.
+
+---
+
+## Mark Notification as Read
+
+```http
+PATCH /api/v1/notifications/<id>/read/
+```
+
+Marks a notification as read and records the read timestamp.
+
+Example:
+
+```http
+PATCH /api/v1/notifications/3/read/
+```
+
+Response:
+
+```json
+{
+    "message": "Notification marked as read."
+}
+```
+
+---
+
+## Invalid Notification ID
+
+An invalid notification ID returns:
+
+```text
+HTTP 404 Not Found
+```
+
+---
+
+# 5. Failed Notification Tracking
+
+The notification service records email failures in the database.
+
+When email delivery fails:
+
+```text
+email_sent = False
+email_error = <error message>
+```
+
+Example:
+
+```text
+email_error:
+Employee recipient email is missing.
+```
+
+This allows failed notifications to be identified and investigated later.
+
+---
+
+# 6. Recipient Validation
+
+Recipient email addresses are validated before sending.
+
+### Missing Email
+
+If the employee has no email address:
+
+```text
+email_sent = False
+email_error = Employee recipient email is missing.
+```
+
+### Invalid Email
+
+Invalid email addresses are rejected safely.
+
+Example:
+
+```text
+not-an-email
+```
+
+Result:
+
+```text
+email_sent = False
+email_error = Invalid employee recipient email.
+```
+
+---
+
+# 7. Duplicate Notification Handling
+
+Duplicate successful welcome notifications are prevented.
+
+The service checks for an existing successful welcome notification:
+
+```python
+Notification.objects.filter(
+    employee=employee,
+    notification_type="WELCOME",
+    email_sent=True,
+).first()
+```
+
+Only successfully sent welcome notifications prevent another successful duplicate notification.
+
+Failed notifications can be retried.
+
+---
+
+# 8. Notification State Handling
+
+Notification state was tested using:
+
+```text
+is_read
+read_at
+email_sent
+email_error
+```
+
+Successful notification:
+
+```text
+email_sent = True
+email_error = None
+```
+
+Unread notification:
+
+```text
+is_read = False
+read_at = None
+```
+
+Read notification:
+
+```text
+is_read = True
+read_at = <timestamp>
+```
+
+Failed notification:
+
+```text
+email_sent = False
+email_error = <error>
+```
+
+---
+
+# 9. Testing Performed
+
+The following scenarios were tested:
+
+| Test Scenario | Result |
+|---|---|
+| Notification creation | PASS |
+| Welcome email workflow | PASS |
+| Development email backend | PASS |
+| Email template rendering | PASS |
+| Missing recipient email | PASS |
+| Invalid recipient email | PASS |
+| Duplicate notification handling | PASS |
+| Notification list API | PASS |
+| Mark notification as read | PASS |
+| Invalid notification ID | PASS |
+| Missing template detection | PASS |
+| Failed notification tracking | PASS |
+| Django configuration check | PASS |
+| Existing API regression testing | PASS |
+
+---
+
+# 10. Regression Testing
+
+The complete Django test suite was executed after implementing the notification service.
+
+Command:
+
+```powershell
+python manage.py test
+```
+
+Final result:
+
+```text
+Found 15 test(s).
+
+Ran 15 tests in 2.131s
+
+OK
+```
+
+Therefore:
+
+```text
+15/15 tests passed
+```
+
+The `/api/v1/employees/active/` regression issue was also fixed during final testing.
+
+Final response:
+
+```text
+GET /api/v1/employees/active/
+HTTP 200
+```
+
+---
+
+# 11. Django System Check
+
+The Django system check was executed successfully.
+
+Command:
+
+```powershell
+python manage.py check
+```
+
+Result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+---
+
+# 12. Issues Identified and Fixed
+
+During implementation and testing, the following issues were identified and resolved:
+
+### Issue 1 — Missing settings import
+
+The notification service initially failed because Django settings were not imported.
+
+The issue was corrected and the welcome email workflow was successfully tested.
+
+### Issue 2 — Invalid recipient handling
+
+Recipient validation was added using Django email validation.
+
+### Issue 3 — Failed notification retry
+
+The duplicate check was initially preventing retries for failed notifications.
+
+The logic was updated to check only notifications where:
+
+```text
+email_sent=True
+```
+
+This allows failed notifications to be retried.
+
+### Issue 4 — Duplicate API route
+
+A duplicate employee profile route was identified in the API URL configuration and removed.
+
+### Issue 5 — Active employee endpoint regression
+
+The existing test:
+
+```text
+/api/v1/employees/active/
+```
+
+was returning HTTP 404.
+
+The missing URL mapping was added:
+
+```text
+employees/active/
+```
+
+After the fix, the regression test returned HTTP 200.
+
+### Issue 6 — Duplicate Admin URL warning
+
+A duplicate Admin URL configuration was identified between the legacy employee URLs and the main project URLs.
+
+The unnecessary Admin URL configuration was removed from the legacy URL file.
+
+Final Django system check passed successfully.
+
+---
+
+# 13. Important Files
+
+The following files were created or updated during this task:
+
+```text
+employees/models.py
+employees/services.py
+employees/serializers.py
+employees/api/views.py
+employees/api/urls.py
+employees/templates/emails/welcome_email.html
+employees/migrations/0015_notification.py
+employee_management/settings.py
+employee_management/urls.py
+.env
+```
+
+---
+
+# 14. API Endpoints
+
+### Notifications
+
+```text
+GET    /api/v1/notifications/
+PATCH  /api/v1/notifications/<id>/read/
+```
+
+### Existing Employee API Verification
+
+```text
+GET    /api/v1/employees/
+GET    /api/v1/employees/active/
+GET    /api/v1/employees/<id>/
+POST   /api/v1/employees/
+PATCH  /api/v1/employees/<id>/
+PUT    /api/v1/employees/<id>/
+DELETE /api/v1/employees/<id>/
+```
+
+Existing employee APIs continued to work after the notification service implementation.
+
+---
+
+# 15. Final Verification
+
+The following final checks were completed:
+
+```text
+Django system check        → PASS
+Notification model         → PASS
+Database migration         → PASS
+Welcome email workflow     → PASS
+Email template rendering   → PASS
+Email validation           → PASS
+Failed notification state  → PASS
+Notification API           → PASS
+Mark-read API              → PASS
+Invalid ID handling        → PASS
+Regression tests           → PASS
+```
+
+Final test result:
+
+```text
+Ran 15 tests
+OK
+```
+
+---
+
+# 16. Git
+
+The task changes are ready to be committed using the required feature branch:
+
+```text
+feature/django-notification-service
+```
+
+Required commit message:
+
+```text
+feat: implement email and notification service
+```
+
+Git commit should be performed after final verification.
+
+---
+
+# 17. Final Task Status
+
+## ADV-003 — Email & Notification Service
+
+The Email and Notification Service was successfully implemented and tested.
+
+Completed:
+
+- Notification model
+- Notification service layer
+- Welcome email workflow
+- Reusable email template
+- Environment-based email configuration
+- Development email backend
+- Notification list API
+- Mark-read API
+- Failed notification tracking
+- Recipient validation
+- Duplicate successful notification prevention
+- Error handling
+- Regression testing
+- Django system check
+
+### Final Result
+
+**ADV-003 — Email & Notification Service — COMPLETED ✅**
+
+**Test Result: 15/15 tests passed**

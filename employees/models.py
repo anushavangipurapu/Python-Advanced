@@ -193,3 +193,56 @@ class EmployeeAuditLog(models.Model):
             f"{self.action} - "
             f"{self.created_at}"
         )
+
+
+class Notification(models.Model):
+
+    NOTIFICATION_TYPES = [
+        ("WELCOME", "Welcome"),
+        ("GENERAL", "General"),
+    ]
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+
+    notification_type = models.CharField(
+        max_length=20,
+        choices=NOTIFICATION_TYPES,
+        default="GENERAL",
+    )
+
+    subject = models.CharField(
+        max_length=255,
+    )
+
+    message = models.TextField()
+
+    recipient_email = models.EmailField()
+
+    is_read = models.BooleanField(
+        default=False,
+    )
+
+    email_sent = models.BooleanField(
+        default=False,
+    )
+
+    email_error = models.TextField(
+        blank=True,
+        null=True,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    read_at = models.DateTimeField(
+        blank=True,
+        null=True,
+    )
+
+    def __str__(self):
+        return f"{self.employee} - {self.subject}"

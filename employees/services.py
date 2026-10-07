@@ -1,12 +1,18 @@
 import csv
 from decimal import Decimal, InvalidOperation
-
+from django.core.validators import validate_email
+from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
+from django.template.loader import render_to_string
 
-from .models import Employee, Department, EmployeeTransfer
-
-
+from .models import (
+    Employee,
+    Department,
+    EmployeeTransfer,
+    Notification,
+)
 class EmployeeTransferService:
 
     @staticmethod
@@ -252,3 +258,88 @@ class EmployeeCSVImportService:
             "failed": failed,
             "errors": errors,
         }
+        from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+
+from .models import Notification
+class NotificationService:
+
+    @staticmethod
+    def send_welcome_notification(employee):
+        recipient_email = employee.email
+
+        # Already welcome notification exists?
+        existing_notification = Notification.objects.filter(
+            employee=employee,
+            notification_type="WELCOME",
+            email_sent=True,
+        ).first()
+
+        if existing_notification:
+            return existing_notification
+
+        notification = Notification.objects.create(
+            employee=employee,
+            notification_type="WELCOME",
+            subject="Welcome to Employee Management",
+            message=(
+                f"Welcome {employee.first_name} "
+                f"{employee.last_name}!"
+            ),
+            recipient_email=recipient_email,
+        )
+
+        try:
+            if not recipient_email:
+                raise ValueError(
+                    "Employee recipient email is missing."
+                )
+
+            try:
+                validate_email(recipient_email)
+            except ValidationError:
+                raise ValueError(
+                    "Invalid employee recipient email."
+                )
+
+            html_message = render_to_string(
+                "emails/welcome_email.html",
+                {
+                    "employee": employee,
+                },
+            )
+
+            email = EmailMultiAlternatives(
+                subject=notification.subject,
+                body=notification.message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[recipient_email],
+            )
+
+            email.attach_alternative(
+                html_message,
+                "text/html",
+            )
+
+            email.send()
+
+            notification.email_sent = True
+            notification.save(
+                update_fields=["email_sent"]
+            )
+
+            return notification
+
+        except Exception as exc:
+            notification.email_sent = False
+            notification.email_error = str(exc)
+
+            notification.save(
+                update_fields=[
+                    "email_sent",
+                    "email_error",
+                ]
+            )
+
+            return notification

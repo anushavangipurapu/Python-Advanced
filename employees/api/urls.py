@@ -5,6 +5,8 @@ from .views import (
     EmployeeViewSet,
     MyProfileAPIView,
     EmployeeProfileAPIView,
+    NotificationListAPIView,
+    NotificationMarkReadAPIView,
 )
 
 
@@ -20,6 +22,10 @@ employee_detail = EmployeeViewSet.as_view({
     "delete": "destroy",
 })
 
+employee_active = EmployeeViewSet.as_view({
+    "get": "active",
+})
+
 
 urlpatterns = [
     path(
@@ -32,6 +38,12 @@ urlpatterns = [
         "employees/",
         employee_list,
         name="employee-list",
+    ),
+
+    path(
+        "employees/active/",
+        employee_active,
+        name="employee-active",
     ),
 
     path(
@@ -50,5 +62,17 @@ urlpatterns = [
         "employees/<int:pk>/profile/",
         EmployeeProfileAPIView.as_view(),
         name="employee-profile",
+    ),
+
+    path(
+        "notifications/",
+        NotificationListAPIView.as_view(),
+        name="notification-list",
+    ),
+
+    path(
+        "notifications/<int:pk>/read/",
+        NotificationMarkReadAPIView.as_view(),
+        name="notification-mark-read",
     ),
 ]

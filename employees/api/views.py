@@ -1,5 +1,5 @@
 from django.http import Http404
-
+from django.utils import timezone
 from rest_framework.decorators import action, api_view
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
@@ -7,16 +7,25 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
-from employees.models import Employee, EmployeeTransfer
+from employees.models import (
+    Employee,
+    EmployeeTransfer,
+    Notification,
+)
+
 from employees.permissions import (
     IsAdmin,
     IsHR,
     IsManager,
     IsEmployee,
 )
+
 from employees.services import EmployeeTransferService
 
-from .serializers import EmployeeSerializer
+from .serializers import (
+    EmployeeSerializer,
+    NotificationSerializer,
+)
 
 
 class EmployeeViewSet(ModelViewSet):
@@ -46,7 +55,9 @@ class EmployeeViewSet(ModelViewSet):
         # Update: ADMIN, HR, and EMPLOYEE
         # EMPLOYEE can update only their own record
         elif self.action in ["update", "partial_update"]:
-            permission_classes = [IsAdmin | IsHR | IsEmployee]
+            permission_classes = [
+                IsAdmin | IsHR | IsEmployee
+            ]
 
         # Delete: ADMIN only
         elif self.action == "destroy":
@@ -54,7 +65,9 @@ class EmployeeViewSet(ModelViewSet):
 
         # Transfer: ADMIN, HR, and MANAGER
         elif self.action == "transfer":
-            permission_classes = [IsAdmin | IsHR | IsManager]
+            permission_classes = [
+                IsAdmin | IsHR | IsManager
+            ]
 
         # Transfer history: all authenticated roles
         elif self.action == "transfer_history":
@@ -84,16 +97,26 @@ class EmployeeViewSet(ModelViewSet):
         # EMPLOYEE can access only their own Employee record
         if (
             self.request.user.is_authenticated
-            and hasattr(self.request.user, "employee_profile")
-            and self.request.user.employee_profile.role == "EMPLOYEE"
+            and hasattr(
+                self.request.user,
+                "employee_profile",
+            )
+            and self.request.user.employee_profile.role
+            == "EMPLOYEE"
         ):
             queryset = queryset.filter(
                 user=self.request.user
             )
 
-        department = self.request.query_params.get("department")
-        is_active = self.request.query_params.get("is_active")
-        salary_min = self.request.query_params.get("salary_min")
+        department = self.request.query_params.get(
+            "department"
+        )
+        is_active = self.request.query_params.get(
+            "is_active"
+        )
+        salary_min = self.request.query_params.get(
+            "salary_min"
+        )
 
         if department:
             queryset = queryset.filter(
@@ -159,31 +182,43 @@ class EmployeeViewSet(ModelViewSet):
         url_path="transfer",
     )
     def transfer(self, request, pk=None):
-        to_department_id = request.data.get("to_department")
+        to_department_id = request.data.get(
+            "to_department"
+        )
         reason = request.data.get("reason")
 
         if not to_department_id:
             return Response(
-                {"detail": "Target department is required."},
+                {
+                    "detail": (
+                        "Target department is required."
+                    )
+                },
                 status=400,
             )
 
         if not reason:
             return Response(
-                {"detail": "Transfer reason is required."},
+                {
+                    "detail": (
+                        "Transfer reason is required."
+                    )
+                },
                 status=400,
             )
 
         try:
-            transfer = EmployeeTransferService.transfer_employee(
-                employee_id=pk,
-                to_department_id=to_department_id,
-                reason=reason,
-                transferred_by=(
-                    request.user
-                    if request.user.is_authenticated
-                    else None
-                ),
+            transfer = (
+                EmployeeTransferService.transfer_employee(
+                    employee_id=pk,
+                    to_department_id=to_department_id,
+                    reason=reason,
+                    transferred_by=(
+                        request.user
+                        if request.user.is_authenticated
+                        else None
+                    ),
+                )
             )
 
         except Exception as exc:
@@ -194,11 +229,17 @@ class EmployeeViewSet(ModelViewSet):
 
         return Response(
             {
-                "message": "Employee transferred successfully.",
+                "message": (
+                    "Employee transferred successfully."
+                ),
                 "transfer_id": transfer.id,
                 "employee_id": transfer.employee_id,
-                "from_department": transfer.from_department.name,
-                "to_department": transfer.to_department.name,
+                "from_department": (
+                    transfer.from_department.name
+                ),
+                "to_department": (
+                    transfer.to_department.name
+                ),
                 "reason": transfer.reason,
                 "status": transfer.status,
             },
@@ -237,11 +278,17 @@ class EmployeeViewSet(ModelViewSet):
             data.append(
                 {
                     "id": transfer.id,
-                    "from_department": transfer.from_department.name,
-                    "to_department": transfer.to_department.name,
+                    "from_department": (
+                        transfer.from_department.name
+                    ),
+                    "to_department": (
+                        transfer.to_department.name
+                    ),
                     "reason": transfer.reason,
                     "status": transfer.status,
-                    "transferred_at": transfer.transferred_at,
+                    "transferred_at": (
+                        transfer.transferred_at
+                    ),
                 }
             )
 
@@ -262,7 +309,11 @@ class MyProfileAPIView(APIView):
             employee = request.user.employee_profile
         except Employee.DoesNotExist:
             return Response(
-                {"detail": "Employee profile not found."},
+                {
+                    "detail": (
+                        "Employee profile not found."
+                    )
+                },
                 status=404,
             )
 
@@ -278,7 +329,11 @@ class MyProfileAPIView(APIView):
             employee = request.user.employee_profile
         except Employee.DoesNotExist:
             return Response(
-                {"detail": "Employee profile not found."},
+                {
+                    "detail": (
+                        "Employee profile not found."
+                    )
+                },
                 status=404,
             )
 
@@ -310,7 +365,11 @@ class EmployeeProfileAPIView(APIView):
             employee = Employee.objects.get(pk=pk)
         except Employee.DoesNotExist:
             return Response(
-                {"detail": "Employee profile not found."},
+                {
+                    "detail": (
+                        "Employee profile not found."
+                    )
+                },
                 status=404,
             )
 
@@ -360,7 +419,11 @@ class EmployeeProfileAPIView(APIView):
             employee = Employee.objects.get(pk=pk)
         except Employee.DoesNotExist:
             return Response(
-                {"detail": "Employee profile not found."},
+                {
+                    "detail": (
+                        "Employee profile not found."
+                    )
+                },
                 status=404,
             )
 
@@ -383,7 +446,11 @@ class EmployeeProfileAPIView(APIView):
             )
 
         # Only Admin, HR and Employee can update profiles
-        if role not in ["ADMIN", "HR", "EMPLOYEE"]:
+        if role not in [
+            "ADMIN",
+            "HR",
+            "EMPLOYEE",
+        ]:
             return Response(
                 {
                     "detail": (
@@ -411,4 +478,113 @@ class EmployeeProfileAPIView(APIView):
         return Response(
             serializer.errors,
             status=400,
+        )
+
+
+class NotificationListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            employee = request.user.employee_profile
+        except Employee.DoesNotExist:
+            return Response(
+                {
+                    "detail": (
+                        "Employee profile not found."
+                    )
+                },
+                status=404,
+            )
+
+        notifications = (
+            Notification.objects.filter(
+                employee=employee
+            )
+            .order_by("-created_at")
+        )
+
+        serializer = NotificationSerializer(
+            notifications,
+            many=True,
+        )
+
+        return Response(
+            serializer.data,
+            status=200,
+        )
+class NotificationListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            employee = request.user.employee_profile
+        except Employee.DoesNotExist:
+            return Response(
+                {
+                    "detail": "Employee profile not found."
+                },
+                status=404,
+            )
+
+        notifications = (
+            Notification.objects.filter(
+                employee=employee
+            )
+            .order_by("-created_at")
+        )
+
+        serializer = NotificationSerializer(
+            notifications,
+            many=True,
+        )
+
+        return Response(
+            serializer.data,
+            status=200,
+        )
+class NotificationMarkReadAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk):
+        try:
+            employee = request.user.employee_profile
+        except Employee.DoesNotExist:
+            return Response(
+                {
+                    "detail": "Employee profile not found."
+                },
+                status=404,
+            )
+
+        try:
+            notification = Notification.objects.get(
+                pk=pk,
+                employee=employee,
+            )
+        except Notification.DoesNotExist:
+            return Response(
+                {
+                    "detail": "Notification not found."
+                },
+                status=404,
+            )
+
+        notification.is_read = True
+        notification.read_at = timezone.now()
+
+        notification.save(
+            update_fields=[
+                "is_read",
+                "read_at",
+            ]
+        )
+
+        serializer = NotificationSerializer(
+            notification
+        )
+
+        return Response(
+            serializer.data,
+            status=200,
         )

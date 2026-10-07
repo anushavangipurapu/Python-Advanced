@@ -2,8 +2,7 @@ from datetime import date
 import re
 
 from rest_framework import serializers
-
-from employees.models import Employee
+from employees.models import Employee, Notification
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -113,3 +112,35 @@ class EmployeeSerializer(serializers.ModelSerializer):
             )
 
         return value
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Notification
+
+        fields = [
+            "id",
+            "employee",
+            "notification_type",
+            "subject",
+            "message",
+            "recipient_email",
+            "is_read",
+            "email_sent",
+            "email_error",
+            "created_at",
+            "read_at",
+        ]
+
+        read_only_fields = [
+            "id",
+            "notification_type",
+            "subject",
+            "message",
+            "recipient_email",
+            "email_sent",
+            "email_error",
+            "created_at",
+            "read_at",
+        ]
