@@ -7916,3 +7916,408 @@ Completed:
 **ADV-003 — Email & Notification Service — COMPLETED ✅**
 
 **Test Result: 15/15 tests passed**
+
+8/10/26
+
+# ADV-004 — Celery & Redis Background Processing
+
+**Date:** 08-Oct-2026  
+**Project:** Employee Management Backend  
+**Framework:** Django + Django REST Framework  
+**Task:** ADV-004 — Celery & Redis Background Processing  
+**Status:** Completed
+
+---
+
+## 1. Objective
+
+The objective of this task was to implement background processing in the Employee Management Backend using **Celery** and **Redis**, so that long-running operations can be executed asynchronously without blocking API requests.
+
+---
+
+## 2. Tasks Completed
+
+The following tasks were completed:
+
+1. Installed and configured Celery.
+2. Configured Redis as the Celery message broker.
+3. Configured Redis as the Celery result backend.
+4. Created the Celery application entry point.
+5. Enabled automatic task discovery.
+6. Installed and configured Redis using Memurai on Windows.
+7. Verified Redis connectivity successfully.
+8. Started and verified the Celery worker.
+9. Implemented asynchronous welcome-email processing.
+10. Implemented employee report generation.
+11. Implemented CSV employee processing.
+12. Added retry handling for retryable task failures.
+13. Configured retry limits and exponential backoff.
+14. Added task start, success, and failure logging.
+15. Used stable identifiers such as employee IDs instead of passing unnecessary model objects to tasks.
+16. Implemented asynchronous task triggering from the application.
+17. Tested successful background task execution.
+18. Tested invalid employee handling and retry behavior.
+19. Tested employee report task execution.
+20. Tested CSV processing and duplicate handling.
+
+---
+
+## 3. Celery Configuration
+
+A dedicated Celery application was created in:
+
+```text
+employee_management/celery.py
+```
+
+The Celery application:
+
+- Loads Django settings.
+- Uses the `CELERY_` configuration namespace.
+- Automatically discovers tasks from installed Django applications.
+
+The Celery application is exposed through:
+
+```text
+employee_management/__init__.py
+```
+
+---
+
+## 4. Redis Configuration
+
+Redis was configured as both the:
+
+- Celery broker
+- Celery result backend
+
+Configuration:
+
+```env
+CELERY_BROKER_URL=redis://127.0.0.1:6379/0
+CELERY_RESULT_BACKEND=redis://127.0.0.1:6379/0
+```
+
+Additional Celery configuration included:
+
+```text
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 300
+CELERY_TASK_SOFT_TIME_LIMIT = 240
+```
+
+---
+
+## 5. Redis Verification
+
+Redis was installed and configured using **Memurai** for the Windows development environment.
+
+Redis connectivity was verified using Python:
+
+```powershell
+python -c "import redis; r=redis.Redis(host='127.0.0.1', port=6379, db=0); print(r.ping())"
+```
+
+Result:
+
+```text
+True
+```
+
+This confirmed that the application could successfully connect to Redis.
+
+---
+
+## 6. Celery Worker
+
+The Celery worker was started using:
+
+```powershell
+celery -A employee_management worker --loglevel=info --pool=solo
+```
+
+The worker successfully connected to Redis and discovered the application tasks.
+
+Registered tasks included:
+
+```text
+employees.tasks.generate_employee_report
+employees.tasks.process_employee_csv
+employees.tasks.send_welcome_email
+```
+
+Worker startup was verified successfully.
+
+---
+
+## 7. Background Tasks
+
+### 7.1 Welcome Email Task
+
+Task:
+
+```text
+send_welcome_email(employee_id)
+```
+
+Purpose:
+
+- Accepts an employee ID.
+- Retrieves the employee from the database.
+- Uses the notification service to process the welcome notification.
+- Runs asynchronously through Celery.
+- Logs task start, completion, and failure.
+- Retries retryable failures.
+
+Example:
+
+```python
+send_welcome_email.delay(employee_id)
+```
+
+---
+
+### 7.2 Employee Report Task
+
+Task:
+
+```text
+generate_employee_report()
+```
+
+Purpose:
+
+- Retrieves active employees.
+- Generates employee report data.
+- Returns employee information and employee count.
+- Executes as a background task.
+
+Example:
+
+```python
+generate_employee_report.delay()
+```
+
+The task was executed successfully and returned:
+
+```text
+SUCCESS
+```
+
+---
+
+### 7.3 CSV Processing Task
+
+Task:
+
+```text
+process_employee_csv(file_path)
+```
+
+Purpose:
+
+- Processes employee CSV files asynchronously.
+- Validates required columns.
+- Reads employee records.
+- Creates new employee records.
+- Detects duplicate employee email addresses.
+- Skips duplicate records.
+- Tracks created, skipped, and failed rows.
+- Records row-level errors.
+
+Required CSV columns:
+
+```text
+first_name
+last_name
+email
+```
+
+Example:
+
+```python
+process_employee_csv.delay("test_employees.csv")
+```
+
+---
+
+## 8. Retry Configuration
+
+Retry handling was implemented for retryable failures.
+
+Configuration includes:
+
+```python
+autoretry_for=(Exception,)
+retry_backoff=True
+retry_backoff_max=60
+retry_jitter=True
+retry_kwargs={"max_retries": 3}
+```
+
+This provides:
+
+- Automatic retry handling.
+- Exponential backoff.
+- Maximum retry limit.
+- Retry jitter to reduce repeated retry timing.
+
+---
+
+## 9. Task Logging
+
+Logging was added to background tasks.
+
+The following events are logged:
+
+```text
+Task started
+Task completed successfully
+Task failed
+Retry attempts
+```
+
+Example:
+
+```text
+Welcome email task started: employee_id=1
+Welcome email task completed: employee_id=1
+```
+
+Failures are logged using exception details for debugging.
+
+---
+
+## 10. Stable Task Identifiers
+
+Tasks use stable identifiers instead of passing complete Django model objects.
+
+For example:
+
+```python
+send_welcome_email.delay(employee_id)
+```
+
+This approach keeps Celery messages lightweight and allows the task to retrieve the latest database state when it executes.
+
+---
+
+## 11. Testing Performed
+
+### Welcome Email Task
+
+A valid employee ID was submitted.
+
+Result:
+
+```text
+SUCCESS
+```
+
+**Status:** PASS
+
+---
+
+### Invalid Employee ID
+
+An invalid employee ID was submitted.
+
+The task:
+
+- Failed to find the employee.
+- Logged the exception.
+- Performed retry attempts.
+- Stopped after the configured retry limit.
+
+**Status:** PASS
+
+---
+
+### Employee Report Task
+
+The employee report task was submitted asynchronously.
+
+Result:
+
+```text
+SUCCESS
+```
+
+**Status:** PASS
+
+---
+
+### CSV Processing
+
+A test CSV file was processed using the Celery task.
+
+The task handled employee records and duplicate email detection.
+
+**Status:** PASS
+
+---
+
+### Duplicate CSV Submission
+
+The same employee CSV data was submitted again.
+
+Existing employee records were detected and skipped instead of creating duplicate records.
+
+**Status:** PASS
+
+---
+
+## 12. Final Verification
+
+Django configuration was verified using:
+
+```powershell
+python manage.py check
+```
+
+Expected result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+Celery worker startup and Redis connectivity were also successfully verified.
+
+---
+
+## 13. Files Added / Updated
+
+Important files related to this task:
+
+```text
+employee_management/celery.py
+employee_management/__init__.py
+employees/tasks.py
+employee_management/settings.py
+.env
+```
+
+---
+
+## 14. Final Result
+
+The Employee Management Backend now supports asynchronous background processing using **Celery + Redis**.
+
+The implementation provides:
+
+- Redis-based message brokering
+- Celery result backend
+- Automatic task discovery
+- Background email processing
+- Employee report generation
+- CSV processing
+- Retry and backoff handling
+- Retry limits
+- Task logging
+- Stable task identifiers
+- Duplicate handling
+- Asynchronous execution
+
+### Final Status
+
+**ADV-004 — Celery & Redis Background Processing — COMPLETED**
