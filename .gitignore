@@ -11,3 +11,6 @@ db.sqlite3
 instance/
 .env
 .env
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
