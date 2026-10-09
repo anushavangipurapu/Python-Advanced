@@ -1,3 +1,4 @@
+
 from django.urls import path
 
 from .health import health_check
@@ -7,6 +8,7 @@ from .views import (
     EmployeeProfileAPIView,
     NotificationListAPIView,
     NotificationMarkReadAPIView,
+    DepartmentEmployeeStatsAPIView,
 )
 
 
@@ -74,5 +76,11 @@ urlpatterns = [
         "notifications/<int:pk>/read/",
         NotificationMarkReadAPIView.as_view(),
         name="notification-mark-read",
+    ),
+
+    path(
+        "departments/stats/",
+        DepartmentEmployeeStatsAPIView.as_view(),
+        name="department-stats",
     ),
 ]

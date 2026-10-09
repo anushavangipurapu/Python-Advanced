@@ -173,3 +173,41 @@ def process_employee_csv(file_path):
             file_path,
         )
         raise
+@shared_task
+def deactivate_inactive_employees():
+    """Deactivate linked user accounts for inactive employees."""
+    logger.info("Inactive employee maintenance task started")
+
+    try:
+        inactive_employees = Employee.objects.filter(
+            is_active=False,
+            user__is_active=True,
+        ).select_related("user")
+
+        checked_count = Employee.objects.filter(
+            is_active=False,
+        ).count()
+
+        deactivated_count = 0
+
+        for employee in inactive_employees:
+            employee.user.is_active = False
+            employee.user.save(update_fields=["is_active"])
+            deactivated_count += 1
+
+        logger.info(
+            "Inactive employee maintenance completed: "
+            "inactive_employees=%s, accounts_deactivated=%s",
+            checked_count,
+            deactivated_count,
+        )
+
+        return {
+            "status": "success",
+            "inactive_employees": checked_count,
+            "accounts_deactivated": deactivated_count,
+        }
+
+    except Exception:
+        logger.exception("Inactive employee maintenance task failed")
+        raise

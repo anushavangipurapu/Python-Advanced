@@ -7,6 +7,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from employees.tasks import send_welcome_email
+from employees.cache_services import invalidate_department_employee_stats
+from employees.cache_services import get_department_employee_stats
 from employees.models import (
     Employee,
     EmployeeTransfer,
@@ -90,7 +92,17 @@ class EmployeeViewSet(ModelViewSet):
             permission_class()
             for permission_class in permission_classes
         ]
+    def perform_create(self, serializer):
+        serializer.save()
+        invalidate_department_employee_stats()
 
+    def perform_update(self, serializer):
+        serializer.save()
+        invalidate_department_employee_stats()
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        invalidate_department_employee_stats()
     def get_queryset(self):
         queryset = Employee.objects.all().order_by("id")
 
@@ -147,6 +159,17 @@ class EmployeeViewSet(ModelViewSet):
         serializer = self.get_serializer(employee)
 
         return Response(serializer.data)
+    def retrieve(self, request, *args, **kwargs):
+        try:
+            employee = self.get_object()
+        except Http404:
+            return Response(
+                {"detail": "Employee not found."},
+                status=404,
+            )
+
+        serializer = self.get_serializer(employee)
+        return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
         try:
@@ -157,30 +180,8 @@ class EmployeeViewSet(ModelViewSet):
                 status=404,
             )
 
-        employee.delete()
-
+        self.perform_destroy(employee)
         return Response(status=204)
-
-    @action(detail=False, methods=["get"])
-    def active(self, request):
-        employees = (
-            self.get_queryset()
-            .filter(is_active=True)
-            .order_by("id")
-        )
-
-        serializer = self.get_serializer(
-            employees,
-            many=True,
-        )
-
-        return Response(serializer.data)
-
-    @action(
-        detail=True,
-        methods=["post"],
-        url_path="transfer",
-    )
     def transfer(self, request, pk=None):
         to_department_id = request.data.get(
             "to_department"
@@ -226,7 +227,7 @@ class EmployeeViewSet(ModelViewSet):
                 {"detail": str(exc)},
                 status=400,
             )
-
+        invalidate_department_employee_stats()
         return Response(
             {
                 "message": (
@@ -588,3 +589,9 @@ class NotificationMarkReadAPIView(APIView):
             serializer.data,
             status=200,
         )
+class DepartmentEmployeeStatsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        stats = get_department_employee_stats()
+        return Response(stats)

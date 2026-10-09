@@ -6597,7 +6597,7 @@ The final project is ready for the Git release and Epic 4 completion process aft
 
 **Date:** 05-Oct-2026  
 **Jira Task:** ADV-001  
-**Project:** Employee Management Backend  
+**Project:** Employee Management Backend
 **Framework:** Django + Django REST Framework  
 **Status:** Completed
 
@@ -6859,7 +6859,7 @@ Implemented and verified:
 # ADV-002 — Custom Management Commands & File Handling
 
 **Date:** 06-Oct-2026  
-**Project:** Employee Management Backend  
+**Project:** Employee Management Backend
 **Framework:** Django + Django REST Framework  
 **Task:** ADV-002 — Custom Management Commands & File Handling  
 **Status:** Completed
@@ -7332,7 +7332,7 @@ The Employee Management Backend now supports:
 # ADV-003 — Email & Notification Service
 
 **Date:** 07-Oct-2026  
-**Project:** Employee Management Backend  
+**Project:** Employee Management Backend
 **Framework:** Django + Django REST Framework  
 **Task:** ADV-003 — Email & Notification Service  
 **Status:** Completed
@@ -7922,7 +7922,7 @@ Completed:
 # ADV-004 — Celery & Redis Background Processing
 
 **Date:** 08-Oct-2026  
-**Project:** Employee Management Backend  
+**Project:** Employee Management Backend
 **Framework:** Django + Django REST Framework  
 **Task:** ADV-004 — Celery & Redis Background Processing  
 **Status:** Completed
@@ -8321,3 +8321,136 @@ The implementation provides:
 ### Final Status
 
 **ADV-004 — Celery & Redis Background Processing — COMPLETED**
+09/10/26
+# DV-005 — Redis Caching, Cache Invalidation & Scheduled Jobs
+**Date:** 08-Oct-2026
+**Project:** Employee Management Backend
+**Framework:** Django REST Framework
+**Task:** DV-005
+**Status:** Implementation and initial verification completed
+
+## 1. Objective
+
+The objective was to implement Redis caching for department employee statistics, invalidate cached data after employee changes, configure Celery Beat scheduled jobs, and verify caching performance.
+
+## 2. Redis Cache Configuration
+
+- Installed and configured `django-redis`.
+- Configured Redis as the Django cache backend.
+- Set the cache timeout to 300 seconds (5 minutes).
+- Used Redis database 1 for caching.
+- Kept the Celery broker and result backend configuration separate from the Django cache.
+
+## 3. Department Employee Statistics Cache
+
+Implemented a reusable caching service in:
+
+`employees/cache_services.py`
+
+The service calculates the following statistics for each department:
+
+- Total employees
+- Active employees
+- Inactive employees
+
+Configured cache key:
+
+`department_employee_stats_v1`
+
+Cache timeout:
+
+`300 seconds`
+
+## 4. Department Statistics API
+
+Implemented the department employee statistics API endpoint:
+
+`GET /api/v1/departments/stats/`
+
+The endpoint was tested successfully and returned HTTP `200` with department-wise employee statistics.
+
+## 5. Cache Performance Testing
+
+Used Django's `CaptureQueriesContext` to measure database queries during cache access.
+
+| Test | Result |
+|---|---|
+| Cache miss | PASS — 1 database query |
+| Cache hit | PASS — 0 database queries |
+| Cached results comparison | PASS |
+| Cache data stored | PASS |
+
+**Result:** The cache hit returned the stored statistics without executing another database query for the statistics service.
+
+## 6. Cache Invalidation
+
+Implemented the reusable function:
+
+`invalidate_department_employee_stats()`
+
+The function deletes the cached department statistics.
+
+The invalidation test confirmed:
+
+- Before fetching statistics, the cache key was absent.
+- After fetching statistics, the cache key was present.
+- After invalidation, the cache key was absent.
+
+Cache invalidation hooks were added to employee create, update, delete, and transfer workflows.
+
+## 7. Celery Beat Scheduled Jobs
+
+Configured two daily scheduled tasks in `employee_management/celery.py`.
+
+| Scheduled Job | Task | Interval |
+|---|---|---|
+| Daily employee report | `employees.tasks.generate_employee_report` | 86,400 seconds |
+| Inactive-employee maintenance | `employees.tasks.deactivate_inactive_employees` | 86,400 seconds |
+
+The Celery Beat schedule configuration was inspected and verified.
+
+## 8. Logging and Error Handling
+
+The background task implementations include logging for task execution and failures. The employee report task and inactive-employee maintenance task log their execution status.
+
+## 9. Django Configuration Verification
+
+Executed the following command:
+
+```powershell
+python manage.py check
+```
+
+Result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+## 10. Summary of Completed Work
+
+1. Configured Redis caching with Django.
+2. Implemented cached department employee statistics.
+3. Added the department statistics API endpoint.
+4. Tested cache miss and cache hit behavior.
+5. Verified the database query count before and after caching.
+6. Tested cache invalidation.
+7. Configured daily employee report scheduling.
+8. Configured inactive-employee maintenance scheduling.
+9. Verified the Celery Beat schedule configuration.
+10. Ran the Django system check successfully.
+
+## 11. Pending Verification
+
+The following tests still require separate verification before the entire task can be considered fully tested:
+
+- Redis connection failure behavior.
+- Cache invalidation after each relevant employee change.
+- Actual scheduled task execution.
+- Repeated task execution behavior.
+- Scheduled task failure handling.
+- Final Git status and commit verification.
+
+## 12. Conclusion
+
+Redis caching, department statistics API testing, cache invalidation testing, and Celery Beat schedule configuration were completed and initially verified. Additional runtime tests and final Git verification remain before declaring all DV-005 acceptance criteria complete.
