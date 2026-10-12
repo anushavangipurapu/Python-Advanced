@@ -8455,3 +8455,102 @@ The following tests still require separate verification before the entire task c
 ## 12. Conclusion
 
 Redis caching, department statistics API testing, cache invalidation testing, and Celery Beat schedule configuration were completed and initially verified. Additional runtime tests and final Git verification remain before declaring all DV-005 acceptance criteria complete.
+
+12/10/26
+
+# Day 1 — Redis Cache Baseline and Design
+
+**Date:** 12-Oct-2026  
+**Project:** Employee Management Backend  
+**Framework:** Django REST Framework  
+**Task:** Baseline Measurement and Cache Design  
+**Status:** Completed
+
+## 1. Objective
+
+Identify a read-heavy API endpoint, measure its execution time with cache misses and cache hits, and document the caching strategy, TTL, invalidation, and data freshness expectations.
+
+## 2. Endpoint
+
+```text
+GET /api/v1/departments/stats/
+```
+
+This endpoint returns employee statistics grouped by department.
+
+## 3. Cache Configuration
+
+| Setting | Value |
+|---|---|
+| Cache key | `department_employee_stats_v1` |
+| Cache timeout | 300 seconds |
+| Cache duration | 5 minutes |
+| Cache data | Department employee statistics |
+
+## 4. Performance Measurements
+
+The service function was executed for 10 iterations in each test.
+
+| Metric | Cache Miss | Cache Hit |
+|---|---:|---:|
+| Average execution time | 21.55 ms | 0.32 ms |
+| Minimum execution time | 2.41 ms | 0.30 ms |
+| Maximum execution time | 193.25 ms | 0.32 ms |
+
+The cache-hit path was approximately 67 times faster than the cache-miss path in this local test.
+
+**Note:** These measurements represent service-function execution time, not full HTTP response time. Actual performance may vary depending on database activity and system load.
+
+## 5. Cache Invalidation
+
+The existing invalidation calls were verified in `employees/api/views.py`.
+
+- Employee creation — `perform_create()`
+- Employee update — `perform_update()`
+- Employee deletion — `perform_destroy()`
+- Employee transfer — after the transfer operation
+
+The invalidation function deletes the cached department statistics. The next request should query the database and cache the updated result.
+
+## 6. Data Freshness
+
+The cache is configured to expire after five minutes. Employee write operations should invalidate the cached statistics so subsequent requests can retrieve updated data.
+
+## 7. Validation
+
+The following checks were completed:
+
+- Identified the department statistics endpoint.
+- Measured cache-miss and cache-hit execution times.
+- Documented the cache key and TTL.
+- Verified employee create, update, delete, and transfer invalidation calls.
+- Created `CACHE_BASELINE_REPORT.md`.
+- Ran `python manage.py check`.
+
+**Django check result:**
+
+```text
+System check identified no issues (0 silenced).
+```
+
+## 8. Files
+
+- `employees/cache_services.py` — cache retrieval and invalidation service.
+- `employees/api/views.py` — API views and invalidation calls.
+- `measure_cache_performance.py` — local cache performance measurement.
+- `CACHE_BASELINE_REPORT.md` — performance results and cache design.
+- `README.md` — project task documentation.
+
+## 9. Remaining Work
+
+The following items belong to subsequent reliability testing:
+
+- Redis-unavailable fallback testing.
+- Cache invalidation and stale-data regression tests.
+- Celery retries and idempotency testing.
+- Celery Beat scheduling and monitoring.
+- Redis/broker interruption and recovery testing.
+
+## 10. Conclusion
+
+Day 1 baseline measurement and cache design documentation were completed. The initial measurements show a significant improvement in service-function execution time when cached results are available. Further reliability and failure-recovery tests remain part of the upcoming tasks.
