@@ -8554,3 +8554,140 @@ The following items belong to subsequent reliability testing:
 ## 10. Conclusion
 
 Day 1 baseline measurement and cache design documentation were completed. The initial measurements show a significant improvement in service-function execution time when cached results are available. Further reliability and failure-recovery tests remain part of the upcoming tasks.
+
+13/10/26
+
+# Cache Invalidation & Fallback
+
+**Date:** 13-Oct-2026  
+**Project:** Employee Management Backend  
+**Framework:** Django + Django REST Framework  
+**Task:** Cache Invalidation, Redis Fallback & Testing  
+**Status:** Implementation and verification completed
+
+---
+
+## 1. Objective
+
+The objective of this task was to implement caching for department employee statistics, invalidate cached data after employee changes, handle Redis cache failures safely, and verify that fresh data is returned after cache invalidation.
+
+## 2. Implementation
+
+### 2.1 Department Statistics Caching
+
+Implemented a reusable cache service in `employees/cache_services.py`.
+
+The service retrieves department statistics, including:
+
+- Total employees
+- Active employees
+- Inactive employees
+
+The statistics are cached using the key:
+
+`department_employee_stats_v1`
+
+The cache timeout is configured to **300 seconds (5 minutes)**.
+
+### 2.2 Department Statistics API
+
+Implemented the department statistics endpoint:
+
+`GET /api/v1/departments/stats/`
+
+The API returns employee statistics grouped by department.
+
+### 2.3 Cache Invalidation
+
+Integrated cache invalidation into the employee write operations:
+
+- Employee creation
+- Employee update
+- Employee deletion
+- Employee transfer
+
+The `invalidate_department_employee_stats()` service deletes the department statistics cache entry so that subsequent requests can retrieve fresh database results.
+
+### 2.4 Redis Failure Fallback
+
+Added exception handling and logging for cache operations.
+
+The service handles the following scenarios:
+
+- Cache miss
+- Redis cache read failure
+- Redis cache write failure
+- Cache invalidation failure
+
+When cache reads or writes fail, the service continues to retrieve and return department statistics from the database.
+
+Cache invalidation failures are logged for investigation.
+
+## 3. Testing and Verification
+
+The following tests and checks were performed:
+
+| Test / Verification | Result |
+|---|---|
+| Department statistics retrieval | PASS |
+| Cache miss and database fallback | PASS |
+| Simulated Redis read failure | PASS |
+| Simulated Redis write failure | PASS |
+| Cache invalidation and refetch | PASS |
+| Employee creation API invalidation hook | PASS |
+| Django system check | PASS |
+| Migration check | PASS |
+
+### Automated Test Results
+
+Command executed:
+
+`python manage.py test employees.tests`
+
+Result:
+
+- Tests discovered: 2
+- Tests passed: 2
+- Failures: 0
+- Errors: 0
+
+### Django System Check
+
+Command:
+
+`python manage.py check`
+
+Result:
+
+`System check identified no issues (0 silenced).`
+
+### Migration Check
+
+Command:
+
+`python manage.py makemigrations --check --dry-run`
+
+Result:
+
+`No changes detected`
+
+## 4. Files Involved
+
+- `employees/cache_services.py` — Department statistics caching, fallback, and invalidation.
+- `employees/api/views.py` — Department statistics endpoint and employee write-operation invalidation hooks.
+- `employees/api/urls.py` — API endpoint routing.
+- `employees/tests.py` — Automated cache invalidation tests.
+
+## 5. Important Notes
+
+The employee creation API test verifies that the create action calls the cache invalidation function. The cache delete/refetch test verifies that cached statistics are removed and fresh statistics are retrieved.
+
+Separate automated API integration tests for employee updates and deletions have not yet been added.
+
+If Redis cache deletion fails, an old cache entry may remain until its expiration. The failure is logged, and this behavior remains a consideration for further hardening.
+
+## 6. Final Status
+
+The Cache Invalidation & Fallback task was implemented and verified. Department statistics caching, database fallback during simulated cache read/write failures, cache invalidation, and automated tests were completed.
+
+**Overall Result: Implementation and verification completed.**

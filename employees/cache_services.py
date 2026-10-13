@@ -1,19 +1,24 @@
+
+import logging
+
 from django.core.cache import cache
 from django.db.models import Count, Q
 
 from employees.models import Department
 
+logger = logging.getLogger(__name__)
 
 DEPARTMENT_STATS_CACHE_KEY = "department_employee_stats_v1"
 DEPARTMENT_STATS_CACHE_TIMEOUT = 300
 
 
 def get_department_employee_stats():
-    """
-    Return cached employee statistics grouped by department.
-    Cache the result for 5 minutes.
-    """
-    cached_stats = cache.get(DEPARTMENT_STATS_CACHE_KEY)
+    """Return cached department statistics, falling back to the database."""
+    try:
+        cached_stats = cache.get(DEPARTMENT_STATS_CACHE_KEY)
+    except Exception:
+        logger.exception("Cache read failed; fetching department statistics from the database.")
+        cached_stats = None
 
     if cached_stats is not None:
         return cached_stats
@@ -41,15 +46,21 @@ def get_department_employee_stats():
         .order_by("name")
     )
 
-    cache.set(
-        DEPARTMENT_STATS_CACHE_KEY,
-        stats,
-        timeout=DEPARTMENT_STATS_CACHE_TIMEOUT,
-    )
+    try:
+        cache.set(
+            DEPARTMENT_STATS_CACHE_KEY,
+            stats,
+            timeout=DEPARTMENT_STATS_CACHE_TIMEOUT,
+        )
+    except Exception:
+        logger.exception("Cache write failed; returning database results.")
 
     return stats
 
 
 def invalidate_department_employee_stats():
     """Remove cached department statistics after employee changes."""
-    cache.delete(DEPARTMENT_STATS_CACHE_KEY)
+    try:
+        cache.delete(DEPARTMENT_STATS_CACHE_KEY)
+    except Exception:
+        logger.exception("Cache invalidation failed.")
