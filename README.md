@@ -8691,3 +8691,159 @@ If Redis cache deletion fails, an old cache entry may remain until its expiratio
 The Cache Invalidation & Fallback task was implemented and verified. Department statistics caching, database fallback during simulated cache read/write failures, cache invalidation, and automated tests were completed.
 
 **Overall Result: Implementation and verification completed.**
+
+14/10/26
+
+# PY-ADV-08 — Celery Reliability and Task Resilience
+
+**Date:** 14-Oct-2026  
+**Project:** Employee Management Backend  
+**Technology Stack:** Python, Django, Celery, Redis, PostgreSQL  
+**Task:** Celery Reliability — Acknowledgement, Retry, Timeouts, Idempotency, and Worker Restart
+
+## 1. Objective
+
+The objective of this task was to improve the reliability of background tasks in the Employee Management Backend. The implementation focused on task acknowledgement, bounded retries with exponential backoff, timeout configuration, idempotent task execution, duplicate execution testing, and worker restart verification.
+
+## 2. Celery and Redis Configuration
+
+- Configured Redis as the Celery message broker and result backend.
+- Verified Redis connectivity on `127.0.0.1:6379`.
+- Started the Celery worker using the following command:
+
+```powershell
+celery -A employee_management worker --pool=solo --loglevel=INFO
+```
+
+- Verified that the worker connected to Redis and registered the task `employees.send_welcome_email`.
+
+## 3. Task Retry and Timeout Configuration
+
+The welcome email task was configured with bounded automatic retries, exponential backoff, jitter, and task time limits.
+
+Key settings:
+
+- `acks_late = True`
+- `reject_on_worker_lost = True`
+- `max_retries = 3`
+- `retry_backoff = True`
+- `retry_backoff_max = 60`
+- `retry_jitter = True`
+- Task soft time limit: 30 seconds
+- Task hard time limit: 40 seconds
+- Celery configuration soft time limit: 240 seconds
+- Celery configuration hard time limit: 300 seconds
+
+The task-level timeout settings and global Celery timeout settings were verified separately.
+
+## 4. Idempotency Implementation
+
+The `send_welcome_email` task uses the employee ID to retrieve employee details from the database.
+
+The implementation uses a `Notification` record with the `WELCOME` notification type to track the welcome email status.
+
+- Creates or retrieves the employee's welcome notification.
+- Checks whether the welcome email has already been marked as sent.
+- Skips sending the email when `email_sent` is already `True`.
+- Uses a database uniqueness constraint to prevent duplicate welcome notification records for the same employee.
+
+This helps prevent duplicate notification records and repeated email sends during normal task re-execution.
+
+## 5. Task Execution Test
+
+**Test:** Execute the welcome email task for Employee ID 4.
+
+Command:
+
+```powershell
+python manage.py shell -c "from employees.tasks import send_welcome_email; result=send_welcome_email.delay(4); print('Task ID:', result.id)"
+```
+
+**Observed result:**
+
+- Celery received and executed the task successfully.
+- The console email backend printed the welcome email content.
+- The task returned `Welcome email sent for employee 4`.
+- Notification ID: `7`
+- `email_sent`: `True`
+- `email_error`: Empty
+
+Note: The configured console email backend prints the email content to the worker console. It does not send an actual external email.
+
+## 6. Duplicate Execution Test
+
+**Test:** Execute the welcome email task again for Employee ID 4.
+
+**Observed result:**
+
+```text
+Welcome email already sent for employee 4
+```
+
+Database verification:
+
+```text
+Notification count: 1
+email_sent: True
+email_error: ''
+```
+
+**Result:** Passed. The existing welcome notification was reused, and the task skipped sending the welcome email again.
+
+## 7. Bounded Retry and Backoff Test
+
+**Test:** Queue the task with a non-existent Employee ID (`999999`).
+
+**Observed result:**
+
+- The task raised `Employee.DoesNotExist`.
+- Celery retried the task automatically.
+- Retry messages showed delays of 1 second, 0 seconds, and 4 seconds.
+- The task eventually failed after the configured retry limit was reached.
+
+**Result:** Passed. Bounded retry and backoff behavior was observed. The final failure was expected because the employee did not exist.
+
+**Limitation:** The current `autoretry_for=(Exception,)` configuration retries all exceptions, including permanent errors. In a production environment, retries should generally be restricted to recoverable failures.
+
+## 8. Worker Restart Test
+
+**Test procedure:**
+
+1. Stopped the Celery worker using `Ctrl + C`.
+2. Queued a welcome email task for Employee ID 4 while the worker was stopped.
+3. Restarted the Celery worker.
+4. Monitored the worker logs for the queued task.
+
+**Observed result:**
+
+```text
+celery@DESKTOP-LSDROB1 ready.
+Task employees.send_welcome_email[...] received
+Task employees.send_welcome_email[...] succeeded:
+'Welcome email already sent for employee 4'
+```
+
+**Result:** Passed. The queued task was processed after the worker restarted, and the idempotency check prevented a repeated welcome email.
+
+This verifies processing of a queued task after a graceful worker restart. It does not independently prove redelivery after an abrupt worker crash.
+
+## 9. Configuration Verification
+
+The following values were verified through Django settings:
+
+```text
+ACKS_LATE: True
+REJECT_ON_WORKER_LOST: True
+SOFT_TIMEOUT: 240
+HARD_TIMEOUT: 300
+```
+
+These values confirm that the acknowledgement and global timeout settings are configured. Actual worker-loss redelivery and timeout-triggered behavior have not yet been tested.
+
+## 10. Conclusion
+
+The Celery reliability task made progress toward reliable background processing in the Employee Management Backend. The welcome email task executed successfully, duplicate execution was handled through idempotency checks, bounded retries and backoff were observed, and a queued task was processed after a graceful worker restart.
+
+The acknowledgement and timeout settings were verified. Additional tests for abrupt worker-loss redelivery and actual timeout behavior remain necessary before claiming complete failure-recovery verification.
+
+**Overall status:** Core implementation and basic reliability tests completed; additional failure-recovery verification pending.

@@ -1,3 +1,4 @@
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -14,7 +15,6 @@ class Department(models.Model):
 
 
 class Employee(models.Model):
-
     ROLE_CHOICES = [
         ("ADMIN", "Admin"),
         ("HR", "HR"),
@@ -180,11 +180,7 @@ class EmployeeAuditLog(models.Model):
         related_name="employee_audit_logs",
     )
 
-    changes = models.JSONField(
-        default=dict,
-        blank=True,
-    )
-
+    changes = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -196,7 +192,6 @@ class EmployeeAuditLog(models.Model):
 
 
 class Notification(models.Model):
-
     NOTIFICATION_TYPES = [
         ("WELCOME", "Welcome"),
         ("GENERAL", "General"),
@@ -214,35 +209,20 @@ class Notification(models.Model):
         default="GENERAL",
     )
 
-    subject = models.CharField(
-        max_length=255,
-    )
-
+    subject = models.CharField(max_length=255)
     message = models.TextField()
-
     recipient_email = models.EmailField()
-
-    is_read = models.BooleanField(
-        default=False,
-    )
-
-    email_sent = models.BooleanField(
-        default=False,
-    )
-
-    email_error = models.TextField(
-        blank=True,
-        null=True,
-    )
-
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-    )
-
-    read_at = models.DateTimeField(
-        blank=True,
-        null=True,
-    )
-
-    def __str__(self):
-        return f"{self.employee} - {self.subject}"
+    is_read = models.BooleanField(default=False)
+    email_sent = models.BooleanField(default=False)
+    email_error = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(blank=True, null=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["employee", "notification_type"],
+                condition=models.Q(notification_type="WELCOME"),
+                name="unique_welcome_notification_per_employee",
+            ),
+        ]
+ 

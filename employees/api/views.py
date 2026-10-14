@@ -1,5 +1,6 @@
 from django.http import Http404
 from django.utils import timezone
+from django.db import transaction
 from rest_framework.decorators import action, api_view
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
@@ -93,8 +94,11 @@ class EmployeeViewSet(ModelViewSet):
             for permission_class in permission_classes
         ]
     def perform_create(self, serializer):
-        serializer.save()
+        employee = serializer.save()
         invalidate_department_employee_stats()
+        transaction.on_commit(
+            lambda: send_welcome_email.delay(employee.pk)
+        )
 
     def perform_update(self, serializer):
         serializer.save()

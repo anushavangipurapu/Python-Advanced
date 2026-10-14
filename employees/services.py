@@ -262,14 +262,12 @@ class EmployeeCSVImportService:
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
-from .models import Notification
 class NotificationService:
-
     @staticmethod
     def send_welcome_notification(employee):
         recipient_email = employee.email
 
-        # Already welcome notification exists?
+        # Skip sending if a welcome email was already sent.
         existing_notification = Notification.objects.filter(
             employee=employee,
             notification_type="WELCOME",
@@ -279,16 +277,23 @@ class NotificationService:
         if existing_notification:
             return existing_notification
 
-        notification = Notification.objects.create(
+        notification, created = Notification.objects.get_or_create(
             employee=employee,
             notification_type="WELCOME",
-            subject="Welcome to Employee Management",
-            message=(
-                f"Welcome {employee.first_name} "
-                f"{employee.last_name}!"
-            ),
-            recipient_email=recipient_email,
+            email_sent=False,
+            defaults={
+                "subject": "Welcome to Employee Management",
+                "message": (
+                    f"Welcome {employee.first_name} "
+                    f"{employee.last_name}!"
+                ),
+                "recipient_email": recipient_email or "",
+            },
         )
+
+        # Reuse an existing unsent notification.
+        if not created and notification.email_sent:
+            return notification
 
         try:
             if not recipient_email:
@@ -298,16 +303,14 @@ class NotificationService:
 
             try:
                 validate_email(recipient_email)
-            except ValidationError:
+            except ValidationError as exc:
                 raise ValueError(
                     "Invalid employee recipient email."
-                )
+                ) from exc
 
             html_message = render_to_string(
                 "emails/welcome_email.html",
-                {
-                    "employee": employee,
-                },
+                {"employee": employee},
             )
 
             email = EmailMultiAlternatives(
@@ -316,30 +319,21 @@ class NotificationService:
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 to=[recipient_email],
             )
-
-            email.attach_alternative(
-                html_message,
-                "text/html",
-            )
-
+            email.attach_alternative(html_message, "text/html")
             email.send()
 
             notification.email_sent = True
+            notification.email_error = ""
             notification.save(
-                update_fields=["email_sent"]
+                update_fields=["email_sent", "email_error"]
             )
-
             return notification
 
         except Exception as exc:
             notification.email_sent = False
             notification.email_error = str(exc)
-
             notification.save(
-                update_fields=[
-                    "email_sent",
-                    "email_error",
-                ]
+                update_fields=["email_sent", "email_error"]
             )
+            raise
 
-            return notification
