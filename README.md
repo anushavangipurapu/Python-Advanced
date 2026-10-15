@@ -8847,3 +8847,150 @@ The Celery reliability task made progress toward reliable background processing 
 The acknowledgement and timeout settings were verified. Additional tests for abrupt worker-loss redelivery and actual timeout behavior remain necessary before claiming complete failure-recovery verification.
 
 **Overall status:** Core implementation and basic reliability tests completed; additional failure-recovery verification pending.
+
+15/10/26
+
+# Task: Celery Task Monitoring, Scheduling and Deployment Health Checks
+
+**Date:** 15 October 2026  
+**Project:** Employee Management Backend  
+**Technology Stack:** Django, Celery, Redis, Python
+
+## 1. Objective
+
+To monitor asynchronous task execution, review Celery Beat scheduling and timezone configuration, document the deployment architecture, and verify task lifecycle logging, worker health, and Redis queue status.
+
+## 2. Deployment Architecture
+
+Reviewed and documented the asynchronous task processing workflow:
+
+- Django submits background tasks through Celery.
+- Redis acts as the message broker and stores queued tasks.
+- Celery workers retrieve and execute background tasks.
+- Tasks interact with the Django application and database as required.
+- Email tasks use the configured Django email backend.
+- Application logs record task execution details and errors.
+- Celery Beat provides periodic scheduling when scheduled tasks are configured.
+
+## 3. Celery Timezone and Scheduling Configuration
+
+Reviewed the Celery configuration in `employee_management/celery.py`.
+
+- Configured timezone: `UTC`
+- UTC support: Enabled
+- Reviewed the Beat schedule configuration.
+- Removed obsolete schedule entries that referenced unavailable periodic tasks.
+- Confirmed that the current Beat schedule is empty.
+
+## 4. Task Lifecycle Logging
+
+Reviewed and verified the custom `LoggingTask` implementation in `employees/tasks.py`.
+
+Implemented and verified logging for:
+
+- Task start events with task name and task ID.
+- Successful task completion.
+- Task execution duration in seconds.
+- Task failures with exception details and traceback.
+- Exception propagation to allow Celery to handle failures and configured retries.
+
+The welcome-email task includes retry configuration, exponential backoff, retry jitter, and task execution time limits.
+
+## 5. Celery Task Execution Verification
+
+Submitted a welcome-email task for employee ID `4` and monitored the worker logs.
+
+**Verified results:**
+
+- Task was successfully received by the Celery worker.
+- Task start information was logged.
+- Task completion and execution duration were logged.
+- The task detected that the welcome email had already been sent and avoided duplicate sending.
+- The task completed successfully.
+
+Recorded task execution duration: approximately `0.230` seconds.
+
+## 6. Failure Logging Verification
+
+Created and executed a temporary local test task that intentionally raised a `ValueError`.
+
+Verified that:
+
+- Task start information was recorded.
+- Task failure details were logged.
+- The task ID was included in the logs.
+- Execution duration was recorded.
+- The exception traceback was captured.
+- The test completed successfully with the expected exception.
+
+The temporary test file was removed after verification.
+
+## 7. Worker Health and Queue Monitoring
+
+### Celery Worker Health
+
+Executed the Celery worker ping command and received a successful `pong` response.
+
+Result: One worker node responded successfully.
+
+### Redis Queue Depth
+
+Checked the Celery queue depth using the Python Redis client.
+
+Verified queue depth: `0`
+
+This confirmed that the queue was empty at the time of the check.
+
+## 8. Django System Validation
+
+Executed:
+
+```powershell
+python manage.py check
+```
+
+**Result:**
+
+`System check identified no issues (0 silenced).`
+
+The Django system check completed successfully.
+
+## 9. Monitoring Commands
+
+**Check Django configuration**
+
+```powershell
+python manage.py check
+```
+
+**Check Celery worker health**
+
+```powershell
+celery -A employee_management inspect ping
+```
+
+**Check Redis queue depth**
+
+```powershell
+python -c "import redis; r=redis.Redis(host='127.0.0.1', port=6379, db=0); print('Celery queue depth:', r.llen('celery'))"
+```
+
+**Review timezone and Beat schedule**
+
+```powershell
+python manage.py shell -c "from employee_management.celery import app; print('Timezone:', app.conf.timezone); print('UTC enabled:', app.conf.enable_utc); print('Beat schedule:', app.conf.beat_schedule)"
+```
+
+**Start the Celery worker**
+
+```powershell
+celery -A employee_management worker --pool=solo --loglevel=INFO
+```
+
+## 10. Work Summary
+
+Successfully reviewed Celery scheduling and timezone configuration, documented the asynchronous deployment architecture, verified task start and completion logging, measured task execution duration, tested failure logging, checked worker health and Redis queue depth, and validated the Django configuration.
+
+The task monitoring and verification activities were completed successfully, and the temporary test file was cleaned up after testing.
+
+**Final Result:** Task monitoring, logging, worker health verification, queue monitoring, timezone review, and Django system validation were completed and verified.

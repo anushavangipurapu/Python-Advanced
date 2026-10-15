@@ -1,5 +1,8 @@
 
-from celery import shared_task
+import logging
+import time
+
+from celery import Task, shared_task
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.core.validators import validate_email
@@ -9,9 +12,48 @@ from django.template.loader import render_to_string
 
 from employees.models import Employee, Notification
 
+logger = logging.getLogger(__name__)
 
+
+class LoggingTask(Task):
+    abstract = True
+
+    def __call__(self, *args, **kwargs):
+        started_at = time.monotonic()
+        task_id = self.request.id
+
+        logger.info(
+            "Task started: task=%s task_id=%s",
+            self.name,
+            task_id,
+        )
+
+        try:
+            result = super().__call__(*args, **kwargs)
+        except Exception:
+            duration = time.monotonic() - started_at
+
+            logger.exception(
+                "Task failed: task=%s task_id=%s duration_seconds=%.3f",
+                self.name,
+                task_id,
+                duration,
+            )
+            raise
+
+        duration = time.monotonic() - started_at
+
+        logger.info(
+            "Task finished: task=%s task_id=%s duration_seconds=%.3f",
+            self.name,
+            task_id,
+            duration,
+        )
+
+        return result
 @shared_task(
     bind=True,
+    base=LoggingTask,
     name="employees.send_welcome_email",
     autoretry_for=(Exception,),
     retry_backoff=True,
