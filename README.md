@@ -8994,3 +8994,135 @@ Successfully reviewed Celery scheduling and timezone configuration, documented t
 The task monitoring and verification activities were completed successfully, and the temporary test file was cleaned up after testing.
 
 **Final Result:** Task monitoring, logging, worker health verification, queue monitoring, timezone review, and Django system validation were completed and verified.
+
+16/10/26
+
+# 6-Oct — Celery Recovery Demo and Reliability Testing
+
+**Project:** Employee Management Backend  
+**Module:** Celery, Redis, Background Task Reliability
+
+## 1. Objective
+
+Implemented and tested Celery task reliability features, including retry and backoff configuration, final failure handling, duplicate execution prevention, broker connectivity, baseline comparison, database transaction rollback, and scheduled task configuration review.
+
+## 2. Celery Reliability Configuration — Completed
+
+- Configured late task acknowledgement using `CELERY_TASK_ACKS_LATE = True`.
+- Enabled worker-loss rejection using `CELERY_TASK_REJECT_ON_WORKER_LOST = True`.
+- Configured global soft and hard task execution limits.
+- Configured Redis as the Celery broker and result backend.
+- Added task logging for task IDs, execution duration, successful completion, and exceptions.
+
+## 3. Retry and Backoff Testing — Verified
+
+- Configured automatic retries for the welcome email task.
+- Enabled exponential backoff and retry jitter.
+- Set a maximum of three retries and a maximum backoff of 60 seconds.
+- Configured task-specific soft and hard time limits.
+- Tested retry behavior using an isolated failure task.
+- Verified four total attempts: one initial attempt and three retries.
+- Verified that the task reached the `FAILURE` state after exhausting retries.
+
+**Result: PASS**
+
+## 4. Duplicate Execution and Idempotency — Verified
+
+- Implemented duplicate welcome-email prevention.
+- Used `get_or_create()` to manage welcome notification records.
+- Checked the notification's `email_sent` status before sending another email.
+- Added database transaction handling and row locking.
+- Verified that duplicate task execution did not send the email twice.
+- Verified that only one welcome notification was created.
+
+**Test command:**
+
+```powershell id="v0o1fj"
+python manage.py test employees.test_celery_idempotency -v 2
+```
+
+**Result: PASS — 1 test passed.**
+
+## 5. Redis Broker Connectivity — Verified
+
+- Checked Redis broker connectivity using the Redis client.
+- Verified that the broker responded successfully.
+- Checked the Celery queue length.
+
+**Observed results:**
+- Broker reachable: `True`
+- Queue length: `0`
+
+**Result: PASS**
+
+## 6. Baseline Comparison — Completed
+
+Compared baseline commit `51f39f0` with the current `HEAD`.
+
+**Comparison command:**
+
+```powershell id="u5c1an"
+git diff 51f39f0 HEAD -- employee_management/settings.py employee_management/celery.py employees/tasks.py
+```
+
+The comparison identified these changes:
+
+- Added late acknowledgement and worker-loss rejection settings.
+- Updated retry, backoff, jitter, logging, and time-limit configuration.
+- Improved welcome-email idempotency.
+- Identified removal of `generate_employee_report`, `deactivate_inactive_employees`, and `process_employee_csv` from the current task module.
+- Identified removal of the baseline daily Celery Beat schedule entries.
+
+The scheduled-job configuration difference was recorded as a baseline comparison finding.
+
+**Result: COMPLETED**
+
+## 7. Database Transaction Rollback — Verified
+
+Created and executed `employees/test_celery_rollback.py`.
+
+**Test command:**
+
+```powershell id="n0slxu"
+python manage.py test employees.test_celery_rollback -v 2
+```
+
+The test verified that a database record created inside `transaction.atomic()` was rolled back when an intentional exception occurred.
+
+**Observed result:**
+
+```text
+Ran 1 test
+OK
+```
+
+**Result: PASS — database transaction rollback verified.**
+
+## 8. Scheduled Job Configuration Review — Completed
+
+Reviewed the baseline and current Celery Beat configuration.
+
+- Identified the baseline `daily-employee-report` schedule.
+- Identified the baseline `inactive-employee-maintenance` schedule.
+- Compared the baseline schedules with the current empty `beat_schedule` configuration.
+- Recorded the differences for the scheduled tasks and their configuration.
+
+**Result: COMPLETED — configuration comparison performed.**
+
+## 9. Final Summary
+
+| Task | Status |
+|---|---|
+| Celery reliability configuration | Completed |
+| Retry and backoff testing | Verified |
+| Final failure handling | Verified |
+| Duplicate execution prevention | Verified |
+| Redis broker connectivity | Verified |
+| Baseline comparison | Completed |
+| Database transaction rollback | Verified |
+| Scheduled-job configuration comparison | Completed |
+| README documentation | Completed |
+
+## Conclusion
+
+Completed the Celery reliability review and documented the implemented configuration, retry and backoff behavior, final failure handling, duplicate execution prevention, broker connectivity check, baseline comparison, and database transaction rollback test. Identified the changes to the baseline scheduled tasks and Celery Beat configuration as part of the comparison.
