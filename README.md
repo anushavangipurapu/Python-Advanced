@@ -9126,3 +9126,141 @@ Reviewed the baseline and current Celery Beat configuration.
 ## Conclusion
 
 Completed the Celery reliability review and documented the implemented configuration, retry and backoff behavior, final failure handling, duplicate execution prevention, broker connectivity check, baseline comparison, and database transaction rollback test. Identified the changes to the baseline scheduled tasks and Celery Beat configuration as part of the comparison.
+
+19/10/26
+
+ 
+
+# 19-Oct-2026 — Cache Design and Baseline Measurement
+
+## 1. Objective
+
+The objective of this task was to review and implement caching for department employee statistics, measure cache-miss and cache-hit response times, verify cache failure handling, and document cache invalidation and performance considerations.
+
+## 2. Cache Strategy
+
+The department employee statistics service uses Django's cache framework to reduce repeated database queries.
+
+- **Cacheable data:** Department employee statistics.
+- **Cache key:** `department_employee_stats_v1`
+- **Time to Live (TTL):** 300 seconds (5 minutes).
+- **Cache miss:** The service retrieves department statistics from the database and attempts to store the result in the cache.
+- **Cache hit:** The service returns cached statistics when the cached value is available.
+- **Cache invalidation:** Cached statistics are invalidated when employee records are changed through the relevant application operations.
+- **Failure handling:** Cache read and write failures are logged, and the service attempts to return database-derived results. Cache invalidation failures are logged without crashing the calling code.
+
+## 3. Performance Benchmark
+
+An initial benchmark was performed to compare the cache-miss and cache-hit execution times.
+
+| Metric | Observed Result |
+|---|---:|
+| Departments returned | 5 |
+| First call — cache miss and database retrieval | 109.349 ms |
+| Second call — cache hit | 0.959 ms |
+| Observed speed ratio | 114.01x |
+| Approximate latency reduction | 99.1% |
+
+### Benchmark Procedure
+
+1. Deleted the department statistics cache key.
+2. Called `get_department_employee_stats()` and measured the elapsed time.
+3. Called the service again to measure the cached response.
+4. Compared the initial retrieval time with the cache-hit time.
+
+### Benchmark Analysis
+
+The initial measurement showed that the cache-hit request was substantially faster than the cache-miss request.
+
+The observed speed ratio was approximately 114.01x, with an approximate latency reduction of 99.1%.
+
+**Limitation:** These figures are from a single initial comparison. They should not be treated as statistically reliable or as a guarantee of production performance. Repeated measurements and database query-count verification are required for a more complete evaluation.
+
+## 4. Cache Invalidation Strategy
+
+| Operation | Expected Behavior |
+|---|---|
+| Retrieve department statistics | Return cached statistics when available |
+| Cache miss | Query the database and attempt to populate the cache |
+| Create employee | Invalidate cached department statistics |
+| Update employee | Invalidate cached department statistics |
+| Delete employee | Invalidate cached department statistics |
+| Cache read failure | Attempt to retrieve statistics from the database |
+| Cache write failure | Return database-derived statistics |
+| Cache deletion failure | Log the error without propagating it to the caller |
+
+Cache invalidation is important to prevent outdated department statistics from being served after employee data changes. If invalidation fails, stale data may remain available until the cache entry expires.
+
+## 5. Automated Testing
+
+The following test runs completed successfully:
+
+### Test Run 1 — Cache and API Invalidation
+
+Command:
+
+`python manage.py test employees.tests.DepartmentStatsCacheTests employees.tests.EmployeeAPICacheInvalidationTests -v 2`
+
+**Result:** 2 tests passed.
+
+### Test Run 2 — Cache Failure Handling
+
+Command:
+
+`python manage.py test employees.tests.DepartmentStatsCacheFailureTests -v 2`
+
+**Result:** 3 tests passed.
+
+The failure-handling tests covered:
+
+- Cache read failure and database fallback.
+- Cache write failure while returning database results.
+- Cache invalidation failure without crashing the caller.
+
+**Total:** 5 tests passed across the two test runs.
+
+The simulated cache failures generated expected error logs. The tests passed because the application handled the simulated failures according to the tested behavior.
+
+## 6. Cache Stampede Risk
+
+A cache stampede can occur when multiple requests arrive after a cache entry expires and simultaneously execute the same database query.
+
+Potential mitigation strategies include:
+
+- Using a cache lock or single-flight mechanism.
+- Refreshing frequently requested statistics before expiration.
+- Monitoring database query volume during concurrent requests.
+- Selecting an appropriate cache TTL based on data freshness requirements.
+
+Concurrent-load testing and stampede protection have not yet been verified as part of the recorded benchmark.
+
+## 7. Boundary Cases and Remaining Verification
+
+The following items require additional verification before the cache implementation can be considered fully validated:
+
+1. Test department statistics when a department has zero employees.
+2. Verify cache invalidation after employee creation, update, and deletion.
+3. Confirm the active cache backend and the configured 300-second TTL.
+4. Run repeated benchmarks and compare average response times.
+5. Compare database query counts for cache misses and cache hits.
+6. Evaluate concurrent requests and cache stampede behavior.
+
+## 8. Configuration and Implementation
+
+The cache implementation is maintained in `employees/cache_services.py`.
+
+Key implementation elements include:
+
+- `DEPARTMENT_STATS_CACHE_KEY`
+- `DEPARTMENT_STATS_CACHE_TIMEOUT`
+- `get_department_employee_stats()`
+- `invalidate_department_employee_stats()`
+
+The service uses Django's cache framework and logs cache failures while attempting to preserve database-backed response behavior.
+
+## 9. Conclusion
+
+The initial performance measurement demonstrated a significant reduction in response time when department statistics were retrieved from the cache. Five automated tests passed across the cache invalidation and failure-handling test runs.
+
+The implementation and initial evidence provide a foundation for cache performance improvement. Further verification of boundary cases, repeated benchmark results, database query counts, and concurrent access is required before making production-readiness claims.
+

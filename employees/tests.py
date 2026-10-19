@@ -137,3 +137,57 @@ class EmployeeAPICacheInvalidationTests(APITestCase):
 
         self.assertEqual(response.status_code, 201)
         mock_invalidate.assert_called_once()
+
+class DepartmentStatsCacheFailureTests(TestCase):
+    def setUp(self):
+        self.department = Department.objects.create(
+            name="Cache Failure Test Department",
+            code="CACHE-FAIL",
+        )
+
+    @patch(
+        "employees.cache_services.cache.get",
+        side_effect=Exception("Simulated cache read failure"),
+    )
+    @patch("employees.cache_services.cache.set")
+    def test_cache_read_failure_falls_back_to_database(
+        self, mock_set, mock_get
+    ):
+        stats = get_department_employee_stats()
+
+        self.assertTrue(
+            any(item["id"] == self.department.id for item in stats)
+        )
+        mock_get.assert_called_once()
+        mock_set.assert_called_once()
+
+    @patch("employees.cache_services.cache.set")
+    @patch(
+        "employees.cache_services.cache.get",
+        return_value=None,
+    )
+    def test_cache_write_failure_still_returns_database_results(
+        self, mock_get, mock_set
+    ):
+        mock_set.side_effect = Exception(
+            "Simulated cache write failure"
+        )
+
+        stats = get_department_employee_stats()
+
+        self.assertTrue(
+            any(item["id"] == self.department.id for item in stats)
+        )
+        mock_get.assert_called_once()
+        mock_set.assert_called_once()
+
+    @patch(
+        "employees.cache_services.cache.delete",
+        side_effect=Exception("Simulated cache delete failure"),
+    )
+    def test_cache_invalidation_failure_does_not_crash(
+        self, mock_delete
+    ):
+        invalidate_department_employee_stats()
+
+        mock_delete.assert_called_once()
