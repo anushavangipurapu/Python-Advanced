@@ -9264,3 +9264,109 @@ The initial performance measurement demonstrated a significant reduction in resp
 
 The implementation and initial evidence provide a foundation for cache performance improvement. Further verification of boundary cases, repeated benchmark results, database query counts, and concurrent access is required before making production-readiness claims.
 
+21/10/26
+
+# Celery Reliability — Implementation and Testing
+
+**Project:** Employee Management Backend  
+**Date:** 21 October 2026
+
+## 1. Objective
+
+Improve Celery task reliability by reviewing acknowledgement settings, retry policies, task timeouts, idempotency, task expiration, and worker restart behavior.
+
+## 2. Reliability Configuration
+
+The project uses Redis as the Celery broker and result backend.
+
+The configured reliability settings include:
+
+- Late task acknowledgement enabled.
+- Reject tasks when a worker is lost.
+- Task hard time limit: 300 seconds.
+- Task soft time limit: 240 seconds.
+- Welcome email task soft time limit: 30 seconds.
+- Welcome email task hard time limit: 40 seconds.
+- Maximum retries: 3.
+- Exponential retry backoff enabled.
+- Maximum retry backoff: 60 seconds.
+- Retry jitter enabled.
+
+## 3. Idempotency
+
+The `send_welcome_email` task uses the employee ID to retrieve the employee and checks the existing welcome notification.
+
+If the notification is already marked as sent (`email_sent=True`), the task returns without sending another email.
+
+This helps prevent duplicate welcome emails when the task is executed again.
+
+## 4. Retry and Backoff
+
+The welcome email task uses automatic retries for exceptions.
+
+Configuration:
+- `autoretry_for=(Exception,)`
+- `retry_backoff=True`
+- `retry_backoff_max=60`
+- `retry_jitter=True`
+- `max_retries=3`
+
+A test task was submitted using a non-existent employee ID to exercise the retry path. The final retry outcome must be confirmed from the Celery worker logs.
+
+## 5. Task Expiration
+
+A report task was published with `expires=1`.
+
+Task ID: `72c4630b-04d2-4598-ac90-20ba4f5023a7`
+
+The task was submitted successfully. Whether it expired before execution must be confirmed from worker logs.
+
+## 6. Duplicate Execution Test
+
+An existing employee record was checked before submitting the duplicate execution test.
+
+Employee ID: `4`
+
+The existing welcome notification was already marked `email_sent=True`.
+
+Test task ID: `cb26f284-b749-4134-92ae-d4fd3c951243`
+
+Expected behavior: The task returns an "already sent" message and does not send another welcome email. Confirm the task result in worker logs before marking this test as passed.
+
+## 7. Worker Restart Test
+
+The Celery worker was stopped and restarted using the following command:
+
+```powershell
+celery -A employee_management worker -l info -P solo -Q reports,maintenance,notifications,default
+```
+
+Observed results:
+- Connected to Redis successfully.
+- Registered the expected Celery tasks.
+- Loaded the configured queues.
+- Reported `celery@DESKTOP-LSDROB1 ready`.
+
+**Result:** Worker restart and startup were successful.
+
+Note: This confirms successful worker startup after restart. Recovery of an in-flight task after an unexpected worker crash requires a separate test.
+
+## 8. General Django Validation
+
+Command:
+
+```powershell
+python manage.py check
+```
+
+Expected result:
+
+```text
+System check identified no issues (0 silenced).
+```
+
+Run the command and record the actual output before final submission.
+
+## 9. Conclusion
+
+Celery reliability configuration was reviewed, and the worker restart test succeeded. Retry and expiration behavior, as well as the duplicate execution result, should be confirmed against worker logs before the final acceptance report is submitted.

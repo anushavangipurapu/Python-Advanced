@@ -18,10 +18,24 @@ app.config_from_object(
 
 app.autodiscover_tasks()
 
-
 app.conf.timezone = "UTC"
 app.conf.enable_utc = True
 
-app.conf.beat_schedule = {}
-
-
+app.conf.beat_schedule = {
+    "daily-employee-report": {
+        "task": "employees.tasks.generate_employee_report",
+        "schedule": 60 * 60 * 24,
+        "options": {
+            "queue": "reports",
+            "expires": 3600,
+        },
+    },
+    "inactive-employee-maintenance": {
+        "task": "employees.tasks.deactivate_inactive_employees",
+        "schedule": 60 * 60 * 24,
+        "options": {
+            "queue": "maintenance",
+            "expires": 1800,
+        },
+    },
+}

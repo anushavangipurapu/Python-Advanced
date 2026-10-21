@@ -243,7 +243,34 @@ CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_TASK_TIME_LIMIT = 300
 
 CELERY_TASK_SOFT_TIME_LIMIT = 240
-#CELERY_TASK_ACKS_LATE = True
+#
+# Day 3: Queue routing and backpressure
+
+CELERY_TASK_DEFAULT_QUEUE = "default"
+
+CELERY_TASK_ROUTES = {
+    "employees.tasks.generate_employee_report": {
+        "queue": "reports",
+    },
+    "employees.tasks.deactivate_inactive_employees": {
+        "queue": "maintenance",
+    },
+    "employees.tasks.send_welcome_email": {
+        "queue": "notifications",
+    },
+}
+
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 100
+
+CELERY_TASK_PUBLISH_RETRY = True
+CELERY_TASK_PUBLISH_RETRY_POLICY = {
+    "max_retries": 3,
+    "interval_start": 1,
+    "interval_step": 1,
+    "interval_max": 3,
+}
+CELERY_TASK_ACKS_LATE = True
 # Redis Cache Configuration
 CACHES = {
     "default": {
