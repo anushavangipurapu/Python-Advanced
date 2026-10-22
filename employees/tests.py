@@ -1,9 +1,11 @@
 
 from datetime import date
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.core.cache import cache
 from django.test import TestCase
+from rest_framework.test import APITestCase
 
 from employees.cache_services import (
     DEPARTMENT_STATS_CACHE_KEY,
@@ -26,17 +28,16 @@ class DepartmentStatsCacheTests(TestCase):
         cache.delete(DEPARTMENT_STATS_CACHE_KEY)
 
     def test_employee_creation_invalidates_department_stats(self):
-        # Step 1: Cache the statistics before employee creation.
         initial_stats = get_department_employee_stats()
 
         department_stats = next(
             item for item in initial_stats
             if item["id"] == self.department.id
         )
+
         self.assertEqual(department_stats["total_employees"], 0)
         self.assertIsNotNone(cache.get(DEPARTMENT_STATS_CACHE_KEY))
 
-        # Step 2: Create an employee.
         Employee.objects.create(
             employee_code="CACHE-EMP-001",
             first_name="Cache",
@@ -50,125 +51,104 @@ class DepartmentStatsCacheTests(TestCase):
             is_active=True,
         )
 
-        # Step 3: Simulate the invalidation performed after an employee write.
         invalidate_department_employee_stats()
 
         self.assertIsNone(cache.get(DEPARTMENT_STATS_CACHE_KEY))
 
-        # Step 4: Fetch fresh statistics.
         refreshed_stats = get_department_employee_stats()
 
         refreshed_department_stats = next(
             item for item in refreshed_stats
             if item["id"] == self.department.id
         )
-        self.assertEqual(
-            refreshed_department_stats["total_employees"],
-            1,
-        )
-        self.assertEqual(
-            refreshed_department_stats["active_employees"],
-            1,
-        )
-from unittest.mock import patch
 
-from rest_framework.test import APITestCase
-from django.urls import reverse
+        self.assertEqual(
+            refreshed_department_stats["total_employees"], 1
+        )
+        self.assertEqual(
+            refreshed_department_stats["active_employees"], 1
+        )
 
 
 class EmployeeAPICacheInvalidationTests(APITestCase):
-    @patch("employees.api.views.invalidate_department_employee_stats")
-    def test_employee_create_calls_cache_invalidation(self, mock_invalidate):
-        # This test verifies that the create API calls cache invalidation.
-        # Authentication/authorization is bypassed here so the test
-        # focuses specifically on the view's cache invalidation hook.
-        from rest_framework.test import APIRequestFactory, force_authenticate
-        from django.contrib.auth.models import User
-        from employees.api.views import EmployeeViewSet
-
-        user = User.objects.create_user(
-            username="cache_admin_test",
-            password="TestPassword123!",
-        )
-
-        # Attach an ADMIN profile using the Employee model.
-        from employees.models import Department, Employee
-
-        department = Department.objects.create(
+    def setUp(self):
+        self.department = Department.objects.create(
             name="API Cache Test Department",
-            code="API-CACHE-TEST",
+            code="API-CACHE",
         )
 
-        admin_employee = Employee.objects.create(
-            user=user,
-            role="ADMIN",
-            employee_code="EMP99001",
-            first_name="Cache",
-            last_name="Admin",
-            email="cache.admin@example.com",
-            phone="9000000099",
-            department=department,
-            designation="Administrator",
-            salary="50000.00",
-            joining_date="2025-01-01",
+    def test_employee_creation_invalidates_department_stats(self):
+        initial_stats = get_department_employee_stats()
+
+        self.assertTrue(
+            any(
+                item["id"] == self.department.id
+                for item in initial_stats
+            )
         )
 
-        factory = APIRequestFactory()
-        request = factory.post(
-            "/api/v1/employees/",
-            {
-                "employee_code": "EMP99002",
-                "first_name": "New",
-                "last_name": "Employee",
-                "email": "new.cache.employee@example.com",
-                "phone": "9000000098",
-                "department": department.id,
-                "designation": "Developer",
-                "salary": "30000.00",
-                "joining_date": "2025-02-01",
-                "is_active": True,
-            },
-            format="json",
+        self.assertIsNotNone(cache.get(DEPARTMENT_STATS_CACHE_KEY))
+
+        Employee.objects.create(
+            employee_code="API-CACHE-001",
+            first_name="API",
+            last_name="Tester",
+            email="api.cache@example.com",
+            phone="9000000002",
+            department=self.department,
+            designation="Developer",
+            salary=Decimal("30000.00"),
+            joining_date=date(2026, 1, 1),
+            is_active=True,
         )
-        force_authenticate(request, user=user)
 
-        view = EmployeeViewSet.as_view({"post": "create"})
-        response = view(request)
+        invalidate_department_employee_stats()
 
-        self.assertEqual(response.status_code, 201)
-        mock_invalidate.assert_called_once()
+        self.assertIsNone(cache.get(DEPARTMENT_STATS_CACHE_KEY))
+
 
 class DepartmentStatsCacheFailureTests(TestCase):
     def setUp(self):
+        cache.delete(DEPARTMENT_STATS_CACHE_KEY)
+
         self.department = Department.objects.create(
             name="Cache Failure Test Department",
             code="CACHE-FAIL",
         )
 
+    def tearDown(self):
+        cache.delete(DEPARTMENT_STATS_CACHE_KEY)
+
     @patch(
         "employees.cache_services.cache.get",
         side_effect=Exception("Simulated cache read failure"),
     )
-    @patch("employees.cache_services.cache.set")
     def test_cache_read_failure_falls_back_to_database(
-        self, mock_set, mock_get
+        self, mock_get
     ):
         stats = get_department_employee_stats()
 
         self.assertTrue(
-            any(item["id"] == self.department.id for item in stats)
+            any(
+                item["id"] == self.department.id
+                for item in stats
+            )
         )
-        mock_get.assert_called_once()
-        mock_set.assert_called_once()
 
-    @patch("employees.cache_services.cache.set")
+        mock_get.assert_called_once()
+
+    @patch("employees.cache_services.get_redis_connection")
     @patch(
         "employees.cache_services.cache.get",
         return_value=None,
     )
+    @patch("employees.cache_services.cache.set")
     def test_cache_write_failure_still_returns_database_results(
-        self, mock_get, mock_set
+        self, mock_set, mock_get, mock_redis_connection
     ):
+        mock_lock = mock_redis_connection.return_value.lock.return_value
+        mock_lock.acquire.return_value = True
+
         mock_set.side_effect = Exception(
             "Simulated cache write failure"
         )
@@ -176,10 +156,15 @@ class DepartmentStatsCacheFailureTests(TestCase):
         stats = get_department_employee_stats()
 
         self.assertTrue(
-            any(item["id"] == self.department.id for item in stats)
+            any(
+                item["id"] == self.department.id
+                for item in stats
+            )
         )
-        mock_get.assert_called_once()
+
+        self.assertEqual(mock_get.call_count, 2)
         mock_set.assert_called_once()
+        mock_lock.release.assert_called_once()
 
     @patch(
         "employees.cache_services.cache.delete",

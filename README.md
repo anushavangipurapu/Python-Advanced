@@ -9370,3 +9370,148 @@ Run the command and record the actual output before final submission.
 ## 9. Conclusion
 
 Celery reliability configuration was reviewed, and the worker restart test succeeded. Retry and expiration behavior, as well as the duplicate execution result, should be confirmed against worker logs before the final acceptance report is submitted.
+
+22/10/26
+
+## Day 4 — Monitoring and Recovery
+
+**Date:** Thursday, 22 October 2026  
+**Story:** Monitoring and Recovery
+
+### 1. Objective
+
+Implement monitoring and recovery capabilities for the Employee Management Backend to improve visibility into background task processing, worker availability, cache performance, and infrastructure health. Provide practical verification steps, failure-handling behavior, and operational recovery guidance.
+
+### 2. Monitoring Implementation
+
+#### 2.1 Queue and Worker Health
+
+The monitoring snapshot provides visibility into Celery worker availability and the configured task queues:
+
+- `default`
+- `reports`
+- `maintenance`
+- `notifications`
+
+The snapshot reports queue depth, active tasks, reserved tasks, worker health, and detected alerts.
+
+#### 2.2 Task Execution Metrics
+
+The monitoring implementation uses Celery task signals to record task outcomes in Redis:
+
+- Successful task executions
+- Failed task executions
+- Task retries
+
+These metrics help identify background task execution issues. Task age and success/failure/retry rates should be monitored over time for more detailed operational analysis.
+
+#### 2.3 Cache Monitoring
+
+The cache implementation tracks:
+
+- Cache hits
+- Cache misses
+- Cache errors
+
+Department employee statistics are cached using the key `department_employee_stats_v1` with a 300-second timeout.
+
+A Redis lock is used to reduce duplicate database work during concurrent cache misses.
+
+#### 2.4 Alert Reporting
+
+The monitoring snapshot includes an alerts collection for reporting detected issues. Redis connectivity, worker availability, and queue status provide useful indicators for identifying operational problems.
+
+### 3. Failure Handling and Recovery
+
+#### 3.1 Cache Read Failure
+
+**Failure symptom:** The cache backend cannot return the requested value.
+
+**Handling:** The application logs the cache error and retrieves department statistics from the database.
+
+**Verification:** The automated cache-read failure test confirms that database results are returned when cache reads fail.
+
+#### 3.2 Cache Write Failure
+
+**Failure symptom:** The cache backend cannot store computed statistics.
+
+**Handling:** The application logs the failure and returns the database results instead of failing the operation solely because of the cache write.
+
+**Verification:** The automated cache-write failure test confirms that the database results remain available.
+
+#### 3.3 Cache Invalidation Failure
+
+**Failure symptom:** The cache key cannot be deleted.
+
+**Handling:** The failure is logged, and the invalidation function does not propagate the cache exception to its caller.
+
+**Limitation:** If invalidation fails, stale cached data may remain available until it expires or is successfully invalidated.
+
+#### 3.4 Redis or Celery Worker Interruption
+
+**Failure symptoms:**
+- Redis health checks fail.
+- No Celery workers are detected.
+- Queue depth increases or tasks remain unprocessed.
+- Task failures or retries increase.
+
+**Safe recovery procedure:**
+
+1. Check that the Redis service is running and reachable.
+2. Check the Celery worker process and its logs.
+3. Confirm that the worker is connected to the configured broker and consuming the intended queues.
+4. Investigate Redis connectivity, task exceptions, and accumulated queue depth before restarting services.
+5. Restore the failed service and verify Redis connectivity and worker availability.
+6. Re-run the monitoring snapshot and confirm that queue processing resumes.
+7. Review failed or retried tasks before manually resubmitting any work, to avoid duplicate side effects.
+
+Service interruption and recovery must be verified in a controlled environment before claiming successful recovery.
+
+### 4. Verification Commands
+
+Run the Django system check:
+
+```powershell
+python manage.py check
+```
+
+Run the employee application tests:
+
+```powershell
+python manage.py test employees
+```
+
+Display the monitoring snapshot:
+
+```powershell
+python manage.py shell -c "from employees.monitoring import get_monitoring_snapshot; import pprint; pprint.pp(get_monitoring_snapshot())"
+```
+
+### 5. Verification Evidence
+
+The following checks have been completed based on the recorded execution results:
+
+- Django system check completed without issues.
+- All 7 employee application tests passed.
+- The monitoring snapshot reported Redis as healthy.
+- One Celery worker was detected.
+- The `default`, `reports`, `maintenance`, and `notifications` queues reported healthy status with zero queued tasks at the time of observation.
+- No alerts were reported in the captured snapshot.
+- Automated negative-case tests covered cache read, write, and invalidation failures.
+
+**Evidence limitation:** The recorded results establish cache failure handling and a healthy monitoring snapshot. A controlled Redis/worker interruption followed by recovery, task-age measurement, and measured success/failure/retry rates must be separately demonstrated if required by the acceptance criteria.
+
+### 6. Operational Limitations
+
+- Monitoring data reflects the system state at the time of collection.
+- Task metrics depend on Redis availability and Celery signals being received.
+- Queue depth and worker availability alone do not guarantee successful task completion.
+- A failed cache invalidation can leave stale data until expiration.
+- Production deployments may require persistent metrics storage, centralized logging, dashboards, and external alert notifications.
+
+### 7. Outcome
+
+Monitoring visibility, task outcome metrics, and cache failure-handling behavior are documented and verified through the available checks and automated tests. The recorded results provide a baseline for operational troubleshooting and recovery.
+
+The implementation and documentation should be committed to version control after the remaining acceptance criteria have been verified.
+
