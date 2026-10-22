@@ -9515,3 +9515,65 @@ Monitoring visibility, task outcome metrics, and cache failure-handling behavior
 
 The implementation and documentation should be committed to version control after the remaining acceptance criteria have been verified.
 
+
+20/10/26
+
+
+## Day 2 — Celery Task Contracts and Idempotency
+
+**Date:** 22 October 2026
+
+### Objective
+Improve Celery task reliability by implementing task validation, idempotency, bounded retries, time limits, error handling, and duplicate execution testing.
+
+### 1. Task Reliability Configuration
+Configured the `send_welcome_email` Celery task with the following settings:
+
+- **Maximum retries:** 3
+- **Retry backoff:** Enabled
+- **Maximum retry backoff:** 60 seconds
+- **Retry jitter:** Enabled
+- **Soft time limit:** 30 seconds
+- **Hard time limit:** 40 seconds
+
+These settings help handle temporary failures and prevent tasks from retrying indefinitely.
+
+### 2. Task Validation
+- The task receives an employee ID and retrieves the employee from the database.
+- It validates the employee's email address before sending the welcome email.
+- Missing employees and invalid email addresses raise errors.
+- Task execution logs record task start, success, failure, and execution duration.
+
+### 3. Idempotency
+- A welcome notification is created using `get_or_create()`.
+- A database uniqueness constraint prevents duplicate welcome notifications for the same employee.
+- The task checks the `email_sent` status before sending the email again.
+- The duplicate execution test confirms that the email sending method is called only once during normal repeated execution.
+
+**Limitation:** Exactly-once email delivery cannot be guaranteed if the application crashes after sending the email but before saving the sent status. A transactional outbox or email-provider idempotency support can help address this limitation.
+
+### 4. Testing and Verification
+
+Run the following command:
+
+```powershell
+python manage.py test test_day2_tasks -v 2
+```
+
+**Test results:**
+- Duplicate welcome email execution — PASS
+- Missing employee ID — PASS
+- Django system check — PASS
+- Total tests executed — 2
+- Failed tests — 0
+
+### 5. Important Design Decisions
+- Bounded retries prevent unlimited retry attempts.
+- Exponential backoff with jitter helps reduce repeated retry pressure.
+- Task time limits help prevent tasks from running indefinitely.
+- Notification status and database constraints help prevent duplicate welcome notifications.
+- Logging supports troubleshooting and task execution monitoring.
+
+### 6. Conclusion
+Implemented and verified Celery task reliability improvements for the Employee Management Backend. Configured bounded retries, retry backoff, execution time limits, email validation, idempotency checks, and task logging. Both automated tests passed successfully.
+
