@@ -9577,3 +9577,102 @@ python manage.py test test_day2_tasks -v 2
 ### 6. Conclusion
 Implemented and verified Celery task reliability improvements for the Employee Management Backend. Configured bounded retries, retry backoff, execution time limits, email validation, idempotency checks, and task logging. Both automated tests passed successfully.
 
+
+23/10/26
+
+
+
+## Day 5 — Capstone: Reliable Background Processing and Cache Layer
+
+### Objective
+Integrate cache-aside data access with reliable Celery background processing. Validate cache failure handling, task idempotency, retry behavior, scheduling, queue routing, overlap prevention, task expiration configuration, and recovery procedures.
+
+### 1. Cache Reliability
+- Implemented and validated department employee statistics caching.
+- Configured a cache timeout of 300 seconds.
+- Verified that cache read and write failures fall back gracefully to database results.
+- Tested cache invalidation failure handling.
+- Verified employee creation triggers department statistics cache invalidation.
+
+### 2. Celery Task Reliability
+- Validated duplicate-operation prevention using a repeat-execution test.
+- Verified that the simulated side effect occurs only once for a duplicate operation.
+- Tested automatic retry behavior using intentional temporary failures.
+- Verified task failure logging and execution status.
+- Implemented and tested overlap prevention using a cache-based lock.
+
+### 3. Scheduler and Queue Configuration
+Configured separate queues for background task categories:
+
+- `reports` — employee report generation.
+- `maintenance` — inactive employee maintenance.
+- `notifications` — welcome notification tasks.
+
+Configured periodic tasks for report generation and inactive employee maintenance.
+
+Additional configuration verified:
+
+- Timezone: UTC.
+- Worker prefetch multiplier: 1.
+- Soft task time limit: 240 seconds.
+- Hard task time limit: 300 seconds.
+- Report task expiration: 3600 seconds.
+- Maintenance task expiration: 1800 seconds.
+
+Task expiration is configured to prevent stale scheduled work from being executed indefinitely. Actual broker/worker expiration behavior must be verified separately.
+
+### 4. Automated Testing and Evidence
+
+The following validations were executed:
+
+| Validation | Result |
+|---|---|
+| Django system check | PASS |
+| Employee application tests | 7 tests passed |
+| Duplicate operation prevention | PASS |
+| Cache-based overlap prevention | PASS |
+| Retry recovery simulation | PASS |
+| Intentional task failure logging | PASS |
+| Celery routing and schedule configuration | Verified |
+| Expiry-configured task publishing | PASS |
+
+The cache failure tests intentionally simulate errors. Their error logs are expected, and the corresponding tests passed.
+
+**Testing limitation:** Retry recovery and failure logging demonstrations use an in-memory Celery test app. They validate test behavior but do not independently prove Redis-broker delivery, real worker restart recovery, or broker-side expiry.
+
+### 5. Monitoring and Recovery
+Monitoring and recovery work includes checks for Redis connectivity, cache behavior, Celery task execution, queue status, and task failure logs.
+
+Operational troubleshooting steps:
+
+1. Run `python manage.py check` to verify Django configuration.
+2. Confirm Redis is available before testing Redis-backed cache or Celery.
+3. Start a Celery worker with the required queues.
+4. Start Celery Beat separately to trigger periodic tasks.
+5. Inspect worker logs for task success, retry, expiry, and failure messages.
+6. Re-run the relevant automated tests after changes.
+
+Example worker command for the configured queues:
+
+```powershell
+celery -A employee_management worker -l info -P solo -Q reports,maintenance,notifications,default
+```
+
+Start the scheduler in a separate terminal:
+
+```powershell
+celery -A employee_management beat -l info
+```
+
+### 6. Important Design Decisions and Limitations
+- Cache failures should not prevent database-backed results from being returned.
+- Cache keys and timeouts should be consistent with the data invalidation strategy.
+- Idempotency checks help prevent repeated side effects during duplicate task execution.
+- Bounded retries and task time limits help control task failure and execution duration.
+- Separate queues support task routing and workload isolation.
+- A cache-based overlap lock helps avoid simultaneous execution, but lock expiry and distributed failure scenarios require careful operational validation.
+- In-memory tests do not replace integration tests against the actual Redis broker and running worker.
+- Production deployment should use appropriate monitoring, secrets management, and broker/worker health checks.
+
+### 7. Conclusion
+The capstone implementation and its core reliability tests have been validated. Cache fallback, duplicate prevention, retry simulation, failure logging, overlap prevention, and Celery configuration checks passed. Remaining final validation includes confirming real broker/worker expiry and restart behavior, reviewing the complete documentation, and checking the final repository changes before committing and pushing.
